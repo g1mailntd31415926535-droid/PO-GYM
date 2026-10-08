@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
+    "gsap": "^3.15.0",
     "lucide-react": "^1.52.0",
     "next": "16.3.8",
     "react": "19.2.8",
