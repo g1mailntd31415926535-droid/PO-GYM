@@ -22,6 +22,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { calculateNextSession } from '@/types/progression';
+import { useFeedback } from '@/components/FeedbackProvider';
 
 interface ExerciseItem {
   id: string;
@@ -56,6 +57,8 @@ export default function ActiveWorkoutScreen({
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [actualReps, setActualReps] = useState<number[]>([]);
   const [isEditingReps, setIsEditingReps] = useState(false);
+  const [emptyNotice, setEmptyNotice] = useState(false);
+  const { notify, celebrate } = useFeedback();
 
   useEffect(() => {
     loadWorkoutData();
@@ -73,8 +76,8 @@ export default function ActiveWorkoutScreen({
       .order('order_index', { ascending: true });
 
     if (!routineExList || routineExList.length === 0) {
-      alert('Lịch này chưa có bài tập nào! Hãy quay lại bấm Sửa để thêm bài.');
-      onBack();
+      setEmptyNotice(true);
+      setLoading(false);
       return;
     }
 
@@ -141,6 +144,24 @@ export default function ActiveWorkoutScreen({
           <p className="text-sm font-semibold text-zinc-800">Đang chuẩn bị buổi tập</p>
           <p className="text-xs text-zinc-500 mt-1">Đồng bộ dữ liệu từ hệ thống...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (emptyNotice || exercises.length === 0) {
+    return (
+      <div className="min-h-screen bg-white text-zinc-950 max-w-md mx-auto flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-blue-600/10 border border-blue-600/20 text-blue-600 flex items-center justify-center">
+          <Dumbbell className="w-6 h-6" aria-hidden="true" />
+        </div>
+        <p className="font-black text-lg">Lịch này chưa có bài tập nào</p>
+        <p className="text-sm text-zinc-500">Hãy quay lại bấm Sửa để thêm bài vào lịch nhé.</p>
+        <button
+          onClick={onBack}
+          className="mt-2 w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-sm active:scale-[0.98] transition-all"
+        >
+          QUAY LẠI DASHBOARD
+        </button>
       </div>
     );
   }
@@ -215,7 +236,7 @@ export default function ActiveWorkoutScreen({
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id, exercise_id' });
 
-    alert(`Hoàn thành bài tập!\n${calculation.actionMessage}`);
+    notify('Hoàn thành bài tập!', { desc: calculation.actionMessage, kind: 'success' });
     setShowSummaryModal(false);
     setIsEditingReps(false);
 
@@ -239,7 +260,7 @@ export default function ActiveWorkoutScreen({
         summary: 'Đã hoàn thành toàn bộ các bài tập hôm nay!'
       });
 
-      alert('🎉 Chúc mừng bạn đã hoàn thành XUẤT SẮC toàn bộ buổi tập hôm nay!');
+      celebrate('Hoàn thành xuất sắc!', 'Toàn bộ buổi tập hôm nay đã xong.\nNghỉ ngơi và quay lại mạnh hơn nhé.');
       onBack();
     }
   };
@@ -278,7 +299,7 @@ export default function ActiveWorkoutScreen({
           </button>
           <div className="text-center min-w-0 px-3">
             <p className="text-[10px] font-bold tracking-[0.2em] text-zinc-500 uppercase">Đang tập</p>
-            <p className="text-sm font-semibold text-zinc-100 truncate">{routineName}</p>
+            <p className="text-sm font-semibold text-zinc-800 truncate">{routineName}</p>
           </div>
           <div className="h-10 px-3 rounded-full bg-white border border-zinc-200 flex items-center gap-1.5 text-xs font-bold tabular-nums">
             <span className="text-blue-600">{completedCount}</span>
@@ -635,7 +656,7 @@ export default function ActiveWorkoutScreen({
 
             <button
               onClick={() => { setIsResting(false); moveToNextSet(); }}
-              className="w-full flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 text-white py-4 rounded-2xl font-black text-sm active:scale-[0.98] transition-all"
+              className="w-full flex items-center justify-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white py-4 rounded-2xl font-black text-sm active:scale-[0.98] transition-all"
             >
               <FastForward size={18} fill="currentColor" /> BỎ QUA — TẬP TIẾP
             </button>

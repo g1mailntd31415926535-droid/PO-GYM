@@ -22,7 +22,9 @@ import {
 } from 'lucide-react';
 import WorkoutHeatmap, { DayActivity } from '@/components/WorkoutHeatmap';
 import ExerciseDetailModal from '@/components/ExerciseDetailModal';
+import { useFeedback } from '@/components/FeedbackProvider';
 import { resolveExerciseImage, inferPrimaryMuscle } from '@/lib/lyfta';
+import { EXERCISES_FULL } from '@/lib/exercises-full';
 
 interface SelectedExerciseItem {
   exerciseId: string;
@@ -40,21 +42,8 @@ interface SelectedExerciseItem {
   equipment?: string;
 }
 
-// Thư viện dự phòng khi Supabase chưa có dữ liệu: ảnh demo kiểu Lyfta đã kiểm chứng.
-const FALLBACK_LIBRARY = [
-  { id: 'ex_1', name: 'Barbell Bench Press', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'chest', secondary_muscles: 'shoulders,triceps', muscle_group: 'Ngực', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00251101.png' },
-  { id: 'ex_2', name: 'Incline Dumbbell Press', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'chest', secondary_muscles: 'shoulders,triceps', muscle_group: 'Ngực trên', equipment: 'Dumbbell', image_url: 'https://lyfta.app/images/exercises/03141101.png' },
-  { id: 'ex_3', name: 'Overhead Press (OHP)', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'shoulders', secondary_muscles: 'triceps,traps', muscle_group: 'Vai', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00911101.png' },
-  { id: 'ex_4', name: 'Barbell Squat', default_sets: 4, default_min_rep: 6, default_max_rep: 10, default_rest_seconds: 120, primary_muscle: 'quads', secondary_muscles: 'glutes,hamstrings', muscle_group: 'Đùi trước', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00431101.png' },
-  { id: 'ex_5', name: 'Romanian Deadlift (RDL)', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'hamstrings', secondary_muscles: 'glutes,lower_back', muscle_group: 'Đùi sau', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00321101.png' },
-  { id: 'ex_6', name: 'Lat Pulldown', default_sets: 3, default_min_rep: 10, default_max_rep: 12, default_rest_seconds: 75, primary_muscle: 'lats', secondary_muscles: 'biceps,rear_delts', muscle_group: 'Lưng xô', equipment: 'Cable', image_url: 'https://lyfta.app/images/exercises/01501101.png' },
-  { id: 'ex_7', name: 'Barbell Bent-Over Row', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'lats', secondary_muscles: 'biceps,rear_delts', muscle_group: 'Lưng giữa', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00271101.png' },
-  { id: 'ex_8', name: 'Dumbbell Lateral Raise', default_sets: 3, default_min_rep: 12, default_max_rep: 15, default_rest_seconds: 60, primary_muscle: 'shoulders', secondary_muscles: 'traps', muscle_group: 'Vai giữa', equipment: 'Dumbbell', image_url: 'https://lyfta.app/images/exercises/03341101.png' },
-  { id: 'ex_9', name: 'Triceps Cable Pushdown', default_sets: 3, default_min_rep: 10, default_max_rep: 15, default_rest_seconds: 60, primary_muscle: 'triceps', secondary_muscles: 'forearms', muscle_group: 'Tay sau', equipment: 'Cable', image_url: 'https://lyfta.app/images/exercises/02411101.png' },
-  { id: 'ex_10', name: 'Dumbbell Bicep Curl', default_sets: 3, default_min_rep: 10, default_max_rep: 12, default_rest_seconds: 60, primary_muscle: 'biceps', secondary_muscles: 'forearms', muscle_group: 'Tay trước', equipment: 'Dumbbell', image_url: 'https://lyfta.app/images/exercises/00311101.png' },
-  { id: 'ex_11', name: 'Leg Press', default_sets: 3, default_min_rep: 10, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'quads', secondary_muscles: 'glutes,hamstrings', muscle_group: 'Đùi trước', equipment: 'Machine', image_url: 'https://lyfta.app/images/exercises/07391101.png' },
-  { id: 'ex_12', name: 'Calf Raises', default_sets: 4, default_min_rep: 12, default_max_rep: 15, default_rest_seconds: 60, primary_muscle: 'calves', secondary_muscles: '', muscle_group: 'Bắp chân', equipment: 'Body weight', image_url: 'https://lyfta.app/images/exercises/04171101.png' },
-];
+// Thư viện dự phòng khi Supabase chưa có dữ liệu: full 70 bài verified từ Lyfta.
+const FALLBACK_LIBRARY = EXERCISES_FULL;
 
 export default function DashboardView({ onStartWorkout }: { onStartWorkout: (routineId: string, routineName: string) => void }) {
   const [routines, setRoutines] = useState<any[]>([]);
@@ -69,6 +58,7 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
   const [selectedExercises, setSelectedExercises] = useState<SelectedExerciseItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [detailExercise, setDetailExercise] = useState<any | null>(null);
+  const { notify, confirmDialog } = useFeedback();
 
   useEffect(() => {
     loadRoutinesAndLogs();
@@ -181,13 +171,22 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
   };
 
   const handleDeleteRoutine = async (routineId: string, routineName: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa lịch "${routineName}" không?`)) return;
+    const ok = await confirmDialog({
+      title: `Xóa lịch "${routineName}"?`,
+      desc: 'Toàn bộ bài tập trong lịch này sẽ bị gỡ. Bạn có thể tạo lại bất cứ lúc nào.',
+      confirmLabel: 'Xóa lịch',
+      danger: true,
+    });
+    if (!ok) return;
 
     await supabase.from('routine_exercises').delete().eq('routine_id', routineId);
     const { error } = await supabase.from('workout_routines').delete().eq('id', routineId);
 
-    if (error) alert(`Lỗi: ${error.message}`);
-    else loadRoutinesAndLogs();
+    if (error) notify(error.message, { desc: 'Không xóa được lịch, thử lại giúp mình.', kind: 'error' });
+    else {
+      notify('Đã xóa lịch tập', { desc: routineName, kind: 'success' });
+      loadRoutinesAndLogs();
+    }
   };
 
   const handleAddExercise = (ex: any) => {
@@ -215,6 +214,35 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
       },
     ]);
     setSearchQuery('');
+  };
+
+  // Mọi chỗ bấm vào bài đều mở chi tiết nổi lên TRƯỚC khung lịch tập.
+  // Nút + không thêm nhanh nữa, mở chi tiết để thêm từ trong modal.
+  const openExerciseDetail = (source: any) => {
+    if (!source) return;
+    const id = source.id ?? source.exerciseId;
+    const full = libraryExercises.find((e: any) => e.id === id);
+    if (full) {
+      setDetailExercise(full);
+      return;
+    }
+    if (source.id) {
+      setDetailExercise(source);
+      return;
+    }
+    setDetailExercise({
+      id,
+      name: source.name,
+      default_sets: source.default_sets || 3,
+      default_min_rep: source.default_min_rep || 8,
+      default_max_rep: source.default_max_rep || 12,
+      muscle_diagram_url: source.muscle_diagram_url,
+      image_url: source.image_url,
+      muscle_group: source.muscle_group,
+      secondary_muscles: source.secondary_muscles,
+      primary_muscle: source.primary_muscle,
+      equipment: source.equipment,
+    });
   };
 
   const handleRemoveExercise = (idx: number) => {
@@ -247,7 +275,10 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
 
   const handleSaveRoutine = async () => {
     if (!routineName.trim() || selectedExercises.length === 0) {
-      alert('Vui lòng nhập tên lịch và thêm ít nhất 1 bài tập!');
+      notify('Chưa đủ thông tin', {
+        desc: 'Vui lòng nhập tên lịch và thêm ít nhất 1 bài tập!',
+        kind: 'error',
+      });
       return;
     }
 
@@ -255,7 +286,8 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setSaving(false);
-      return alert('Chưa đăng nhập!');
+      notify('Chưa đăng nhập!', { kind: 'error' });
+      return;
     }
 
     let routineId = editingRoutineId;
@@ -272,7 +304,8 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
 
       if (rError || !newR) {
         setSaving(false);
-        return alert(`Lỗi: ${rError?.message}`);
+        notify(rError?.message || 'Không lưu được lịch', { desc: 'Thử lại giúp mình.', kind: 'error' });
+        return;
       }
       routineId = newR.id;
     }
@@ -300,6 +333,10 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
 
     setSaving(false);
     setShowModal(false);
+    notify(editingRoutineId ? 'Đã cập nhật lịch tập' : 'Đã lưu lịch tập mới', {
+      desc: `${routineName} • ${selectedExercises.length} bài`,
+      kind: 'success',
+    });
     loadRoutinesAndLogs();
   };
 
@@ -315,11 +352,21 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
   }).length;
   const totalSessions = activityLogs.filter((l) => l.level > 0).length;
 
-  const filteredLibrary = libraryExercises.filter((ex) =>
-    ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (ex.primary_muscle && ex.primary_muscle.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (ex.equipment && ex.equipment.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredLibrary = libraryExercises.filter((ex) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      ex.name.toLowerCase().includes(q) ||
+      (ex.primary_muscle && ex.primary_muscle.toLowerCase().includes(q)) ||
+      (ex.secondary_muscles && ex.secondary_muscles.toLowerCase().includes(q)) ||
+      (ex.muscle_group && ex.muscle_group.toLowerCase().includes(q)) ||
+      (ex.equipment && ex.equipment.toLowerCase().includes(q))
+    );
+  });
+
+  const SUGGESTION_COUNT = 6;
+  // Chưa gõ gì thì gợi ý sẵn 6 bài đầu, có gõ thì hiện tối đa 30 kết quả khớp.
+  const suggestionList = filteredLibrary.slice(0, searchQuery.trim() ? 30 : SUGGESTION_COUNT);
 
   return (
     <main className="relative min-h-screen bg-white text-zinc-950 overflow-x-hidden">
@@ -456,11 +503,7 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
 
       {detailExercise && (
         <ExerciseDetailModal
-          exercise={{
-            ...detailExercise,
-            image_url: resolveExerciseImage(detailExercise) || detailExercise.image_url,
-            primary_muscle: detailExercise.primary_muscle || inferPrimaryMuscle(detailExercise.name),
-          }}
+          exercise={detailExercise}
           isAdded={!!selectedExercises.find((item) => item.exerciseId === detailExercise.id)}
           onClose={() => setDetailExercise(null)}
           onAdd={handleAddExercise}
@@ -470,7 +513,7 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
       {/* MODAL TẠO & SỬA LỊCH */}
       {showModal && (
         <div
-          className="fixed inset-0 z-50 bg-zinc-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-40 bg-zinc-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="routine-modal-title"
@@ -513,10 +556,10 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
               />
 
               <label htmlFor="exercise-search" className="block text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 mb-2">
-                Tìm kiếm bài tập
+                {searchQuery.trim() ? 'Kết quả tìm kiếm' : 'Gợi ý bài tập cho bạn'}
               </label>
-              <div className="relative mb-6">
-                <div className="group relative">
+              <div className="mb-6">
+                <div className="group relative mb-3">
                   <Search
                     className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-blue-600 transition-colors"
                     aria-hidden="true"
@@ -531,10 +574,9 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
                   />
                 </div>
 
-                {/* DANH SÁCH TÌM KIẾM CÓ BẢN ĐỒ GIẢI PHẪU CƠ BẮP TO RÕ (84x84px) */}
-                {searchQuery && (
-                  <div className="absolute top-full mt-2 left-0 right-0 bg-white border border-zinc-200 rounded-3xl max-h-[380px] overflow-y-auto z-20 shadow-2xl shadow-zinc-950/15 p-2 space-y-2">
-                    {filteredLibrary.map((ex) => {
+                {/* GỢI Ý LUÔN, KHÔNG CẦN GÕ TÌM KIẾM */}
+                <div className="bg-white border border-zinc-200 rounded-3xl max-h-[380px] overflow-y-auto shadow-sm p-2 space-y-2">
+                  {suggestionList.map((ex) => {
                       const added = !!selectedExercises.find((item) => item.exerciseId === ex.id);
                       return (
                         <div
@@ -542,15 +584,19 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
                           className="flex items-center gap-3.5 p-3 rounded-2xl border border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50/80 transition-all"
                         >
                           {/* KHUNG ẢNH MINH HỌA KIỂU LYFTA - NHẤN ĐỂ XEM GIẢI PHẪU */}
-                          <button type="button" onClick={() => setDetailExercise(ex)} className="w-[84px] h-[84px] shrink-0 rounded-2xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center shadow-sm hover:border-blue-500/60 transition-colors" aria-label={`Xem chi tiết ${ex.name}`}>
-                            <MuscleAnatomyVisual
-                              imageUrl={resolveExerciseImage(ex) || ex.muscle_diagram_url}
-                              muscleGroup={ex.primary_muscle || ex.name}
-                            />
+                          <button type="button" onClick={() => openExerciseDetail(ex)} className="w-[84px] h-[84px] shrink-0 rounded-2xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center shadow-sm hover:border-blue-500/60 transition-colors" aria-label={`Xem chi tiết ${ex.name}`}>
+                            {(() => {
+                              const img = ex.image_url || resolveExerciseImage(ex);
+                              return img ? (
+                                <img src={img} alt={ex.name} loading="lazy" className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-[10px] font-bold text-zinc-400 px-2 text-center">No image</span>
+                              );
+                            })()}
                           </button>
 
                           {/* THÔNG TIN BÀI TẬP - NHẤN ĐỂ XEM GIẢI PHẪU */}
-                          <button type="button" onClick={() => setDetailExercise(ex)} className="flex-1 min-w-0 text-left">
+                          <button type="button" onClick={() => openExerciseDetail(ex)} className="flex-1 min-w-0 text-left">
                             <h5 className="font-bold text-[14px] leading-snug text-zinc-950 line-clamp-2">
                               {ex.name}
                             </h5>
@@ -573,17 +619,16 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
                             </span>
                           </button>
 
-                          {/* NÚT THÊM BÀI */}
+                          {/* NÚT + GIỜ MỞ CHI TIẾT TRƯỚC, THÊM TỪ TRONG MODAL */}
                           <button
                             type="button"
-                            onClick={() => handleAddExercise(ex)}
-                            disabled={added}
-                            className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all ${
+                            onClick={() => openExerciseDetail(ex)}
+                            className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all active:scale-95 ${
                               added
-                                ? 'bg-zinc-100 text-blue-600 cursor-default'
-                                : 'bg-blue-600 text-white hover:bg-blue-500 shadow-md shadow-blue-600/20 active:scale-95'
+                                ? 'bg-zinc-100 text-blue-600'
+                                : 'bg-blue-600 text-white hover:bg-blue-500 shadow-md shadow-blue-600/20'
                             }`}
-                            aria-label={added ? 'Đã thêm bài này' : 'Thêm vào lịch'}
+                            aria-label={`Xem chi tiết ${ex.name}`}
                           >
                             {added ? (
                               <Check className="w-5 h-5" strokeWidth={2.5} />
@@ -595,13 +640,12 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
                       );
                     })}
 
-                    {filteredLibrary.length === 0 && (
+                  {suggestionList.length === 0 && (
                       <div className="p-6 text-center text-xs text-zinc-500">
                         Không tìm thấy bài tập nào khớp với từ khóa "{searchQuery}".
                       </div>
                     )}
-                  </div>
-                )}
+                </div>
               </div>
 
               {/* CÁC BÀI ĐÃ CHỌN TRONG LỊCH */}
@@ -618,15 +662,24 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
                 {selectedExercises.map((item, idx) => (
                   <li key={idx} className="bg-white border border-zinc-200 rounded-3xl p-4">
                     <div className="flex items-start gap-3 mb-4">
-                      {/* Thumbnail giải phẫu chuyên nghiệp kích thước 56x56px */}
-                      <div className="w-14 h-14 shrink-0 rounded-2xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center shadow-sm">
-                        <MuscleAnatomyVisual
-                          imageUrl={item.image_url || resolveExerciseImage(item) || item.muscle_diagram_url}
-                          muscleGroup={item.primary_muscle || item.name}
-                        />
-                      </div>
+                      {/* BẤM ẢNH / TÊN TRONG LỊCH CŨNG MỞ CHI TIẾT NỔI LÊN TRÊN */}
+                      <button
+                        type="button"
+                        onClick={() => openExerciseDetail(item)}
+                        className="w-14 h-14 shrink-0 rounded-2xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center shadow-sm hover:border-blue-500/60 transition-colors"
+                        aria-label={`Xem chi tiết ${item.name}`}
+                      >
+                        {(() => {
+                          const img = item.image_url || resolveExerciseImage(item);
+                          return img ? (
+                            <img src={img} alt={item.name} loading="lazy" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[9px] font-bold text-zinc-400 px-1 text-center">No image</span>
+                          );
+                        })()}
+                      </button>
 
-                      <div className="flex-1 min-w-0">
+                      <button type="button" onClick={() => openExerciseDetail(item)} className="flex-1 min-w-0 text-left">
                         <span className="font-bold text-sm text-zinc-950 leading-snug line-clamp-2">
                           {item.name}
                         </span>
@@ -635,7 +688,7 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
                             {item.primary_muscle}
                           </span>
                         )}
-                      </div>
+                      </button>
 
                       <button
                         onClick={() => handleRemoveExercise(idx)}
@@ -648,26 +701,52 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
                     </div>
 
                     <div className="grid grid-cols-2 gap-2.5 mb-3">
-                      {/* Weight */}
-                      <div className="bg-white border border-zinc-200 rounded-2xl px-3 py-2.5 focus-within:border-blue-600/60 transition-colors">
+                      {/* Weight stepper - cùng kiểu nút Số set cho dễ bấm */}
+                      <div className="bg-white border border-zinc-200 rounded-2xl px-3 py-2.5">
                         <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-0.5">
                           Mức tạ
                         </span>
-                        <div className="flex items-baseline gap-1">
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            aria-label={`Mức tạ ${item.name}`}
-                            value={item.weight}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
+                        <div className="flex items-center justify-between gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
                               const copy = [...selectedExercises];
-                              copy[idx].weight = val;
+                              copy[idx].weight = Math.max(0, (copy[idx].weight || 0) - 2.5);
                               setSelectedExercises(copy);
                             }}
-                            className="w-full min-w-0 bg-transparent text-xl font-black text-blue-600 tabular-nums focus:outline-none"
-                          />
-                          <span className="text-xs font-bold text-zinc-500">kg</span>
+                            className="w-7 h-7 rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 flex items-center justify-center active:scale-90 transition-all"
+                            aria-label={`Giảm mức tạ ${item.name}`}
+                          >
+                            <Minus className="w-3.5 h-3.5" aria-hidden="true" />
+                          </button>
+                          <div className="flex items-baseline gap-1 min-w-0">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              aria-label={`Mức tạ ${item.name}`}
+                              value={item.weight}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const copy = [...selectedExercises];
+                                copy[idx].weight = val;
+                                setSelectedExercises(copy);
+                              }}
+                              className="w-12 bg-transparent text-center text-xl font-black text-blue-600 tabular-nums focus:outline-none"
+                            />
+                            <span className="text-xs font-bold text-zinc-500">kg</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const copy = [...selectedExercises];
+                              copy[idx].weight = (copy[idx].weight || 0) + 2.5;
+                              setSelectedExercises(copy);
+                            }}
+                            className="w-7 h-7 rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 flex items-center justify-center active:scale-90 transition-all"
+                            aria-label={`Tăng mức tạ ${item.name}`}
+                          >
+                            <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                          </button>
                         </div>
                       </div>
 
@@ -699,28 +778,51 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
                     </div>
 
                     {/* Target reps per set */}
-                    <div>
+                    <div className="-mx-4 px-4">
                       <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
                         Rep mục tiêu từng set
                       </span>
-                      <div className="grid grid-cols-5 gap-1.5">
+                      <div
+                        className="grid gap-1.5"
+                        style={{ gridTemplateColumns: `repeat(${item.target_reps.length}, minmax(0, 1fr))` }}
+                      >
                         {item.target_reps.map((rep, setIdx) => (
-                          <label
+                          <div
                             key={setIdx}
                             className="flex flex-col items-center bg-white border border-zinc-200 rounded-xl py-1.5 focus-within:border-blue-600/60 transition-colors"
                           >
                             <span className="text-[9px] font-bold text-zinc-500 uppercase">S{setIdx + 1}</span>
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              value={rep}
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value) || 1;
-                                handleUpdateRepOfSet(idx, setIdx, val);
-                              }}
-                              className="w-full bg-transparent text-center text-base font-black text-zinc-950 tabular-nums focus:outline-none"
-                            />
-                          </label>
+                            <div className="flex items-center justify-between w-full px-1">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateRepOfSet(idx, setIdx, rep - 1)}
+                                disabled={rep <= 1}
+                                className="w-6 h-6 rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 disabled:opacity-30 flex items-center justify-center active:scale-90 transition-all"
+                                aria-label={`Giảm rep set ${setIdx + 1} ${item.name}`}
+                              >
+                                <Minus className="w-3 h-3" aria-hidden="true" />
+                              </button>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                value={rep}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value) || 1;
+                                  handleUpdateRepOfSet(idx, setIdx, val);
+                                }}
+                                className="w-8 bg-transparent text-center text-base font-black text-zinc-950 tabular-nums focus:outline-none"
+                                aria-label={`Rep set ${setIdx + 1} ${item.name}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateRepOfSet(idx, setIdx, rep + 1)}
+                                className="w-6 h-6 rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 flex items-center justify-center active:scale-90 transition-all"
+                                aria-label={`Tăng rep set ${setIdx + 1} ${item.name}`}
+                              >
+                                <Plus className="w-3 h-3" aria-hidden="true" />
+                              </button>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -761,135 +863,6 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
         </div>
       )}
     </main>
-  );
-}
-
-/**
- * BẢN ĐỒ GIẢI PHẪU CƠ BẮP CHUYÊN SÂU PHONG CÁCH LYFTA
- * Nền tối sang trọng, hiển thị chi tiết các khối cơ nổi bật màu đỏ rực (#ef4444)
- * Tự động chuyển mặt trước (Anterior) hoặc mặt sau (Posterior) tương ứng với từng bài tập
- */
-function MuscleAnatomyVisual({ imageUrl, muscleGroup }: { imageUrl?: string; muscleGroup: string }) {
-  const [imgError, setImgError] = useState(false);
-
-  // Nếu link ảnh ngoài load được thì ưu tiên hiển thị
-  if (imageUrl && !imgError) {
-    return (
-      <img
-        src={imageUrl}
-        alt={muscleGroup}
-        loading="lazy"
-        onError={() => setImgError(true)}
-        className="w-full h-full object-contain bg-white rounded-2xl"
-      />
-    );
-  }
-
-  const name = muscleGroup.toLowerCase();
-
-  // Nhận diện vùng cơ
-  const isChest = name.includes('ngực') || name.includes('chest') || name.includes('bench') || name.includes('pushup') || name.includes('fly');
-  const isBack = name.includes('xô') || name.includes('lưng') || name.includes('lat') || name.includes('row') || name.includes('deadlift') || name.includes('pull');
-  const isShoulders = name.includes('vai') || name.includes('shoulder') || name.includes('press') || name.includes('deltoid') || name.includes('raise');
-  const isBiceps = name.includes('tay trước') || name.includes('bicep') || name.includes('curl');
-  const isTriceps = name.includes('tay sau') || name.includes('tricep') || name.includes('skull') || name.includes('pushdown') || name.includes('kickback');
-  const isLegs = name.includes('chân') || name.includes('đùi') || name.includes('squat') || name.includes('press') || name.includes('lunge');
-  const isHamstringsGlutes = name.includes('đùi sau') || name.includes('mông') || name.includes('rdl') || name.includes('thrust') || name.includes('curl');
-  const isAbs = name.includes('bụng') || name.includes('lõi') || name.includes('crunch') || name.includes('plank') || name.includes('wood') || name.includes('twist');
-  const isCalves = name.includes('bắp chân') || name.includes('calf');
-
-  // Nếu bài tác động mặt sau (Lưng, Xô, Tay sau, Mông, Đùi sau) -> Vẽ mặt lưng (Posterior)
-  const isPosterior = (isBack || isTriceps || isHamstringsGlutes) && !isChest && !isAbs;
-
-  const red = '#ef4444';
-  const redGlow = '#f87171';
-  const bodyBase = '#334155';
-  const strokeColor = '#1e293b';
-
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center select-none">
-      <svg viewBox="0 0 100 135" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* ĐẦU */}
-        <circle cx="50" cy="13" r="8" fill={bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-        {isPosterior ? (
-          /* ===== MẶT SAU (POSTERIOR VIEW) ===== */
-          <g>
-            {/* Cổ & Cầu vai sau */}
-            <path d="M42 20 L58 20 L68 28 L32 28 Z" fill={isBack || isShoulders ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Vai sau */}
-            <circle cx="28" cy="30" r="6" fill={isShoulders ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <circle cx="72" cy="30" r="6" fill={isShoulders ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Cánh tay & Tay sau (Triceps) */}
-            <rect x="20" y="34" width="7.5" height="18" rx="3.5" fill={isTriceps ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="72.5" y="34" width="7.5" height="18" rx="3.5" fill={isTriceps ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="18.5" y="54" width="6.5" height="17" rx="3" fill={bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="75" y="54" width="6.5" height="17" rx="3" fill={bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Lưng trên & Khối cơ Xô (Lats) */}
-            <path d="M34 28 H66 L60 52 L50 56 L40 52 Z" fill={isBack ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            {isBack && <path d="M38 34 Q50 44 62 34" stroke={redGlow} strokeWidth="1.5" strokeLinecap="round" />}
-
-            {/* Lưng dưới */}
-            <path d="M40 52 H60 L57 65 H43 Z" fill={isBack ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Cơ Mông (Glutes) */}
-            <ellipse cx="43" cy="71" rx="7" ry="6.5" fill={isHamstringsGlutes ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <ellipse cx="57" cy="71" rx="7" ry="6.5" fill={isHamstringsGlutes ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Đùi sau (Hamstrings) */}
-            <rect x="36" y="77" width="10" height="25" rx="5" fill={isHamstringsGlutes ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="54" y="77" width="10" height="25" rx="5" fill={isHamstringsGlutes ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Bắp chân sau (Calves) */}
-            <rect x="37" y="104" width="8" height="23" rx="4" fill={isCalves ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="55" y="104" width="8" height="23" rx="4" fill={isCalves ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-          </g>
-        ) : (
-          /* ===== MẶT TRƯỚC (ANTERIOR VIEW) ===== */
-          <g>
-            {/* Cổ & Cầu vai trước */}
-            <path d="M44 20 L56 20 L63 27 L37 27 Z" fill={isShoulders ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Khối vai trước & vai giữa */}
-            <circle cx="28" cy="29" r="6" fill={isShoulders ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <circle cx="72" cy="29" r="6" fill={isShoulders ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Cơ Ngực (Pectoralis Major) */}
-            <path d="M35 27 H49 V42 H37 Z" rx="2" fill={isChest ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <path d="M51 27 H65 V42 H53 Z" rx="2" fill={isChest ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Tay trước (Biceps) */}
-            <rect x="20" y="34" width="7.5" height="18" rx="3.5" fill={isBiceps ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="72.5" y="34" width="7.5" height="18" rx="3.5" fill={isBiceps ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Cẳng tay */}
-            <rect x="18.5" y="54" width="6.5" height="17" rx="3" fill={name.includes('cẳng tay') ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="75" y="54" width="6.5" height="17" rx="3" fill={name.includes('cẳng tay') ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Cơ Bụng (6 Múi) */}
-            <g fill={isAbs ? red : bodyBase} stroke={strokeColor} strokeWidth="0.8">
-              <rect x="42" y="44" width="7" height="6.5" rx="1.5" />
-              <rect x="51" y="44" width="7" height="6.5" rx="1.5" />
-              <rect x="42" y="52" width="7" height="6.5" rx="1.5" />
-              <rect x="51" y="52" width="7" height="6.5" rx="1.5" />
-              <rect x="43" y="60" width="6.5" height="6" rx="1.5" />
-              <rect x="50.5" y="60" width="6.5" height="6" rx="1.5" />
-            </g>
-
-            {/* Đùi trước (Quadriceps) */}
-            <rect x="36" y="69" width="10.5" height="30" rx="5" fill={isLegs ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="53.5" y="69" width="10.5" height="30" rx="5" fill={isLegs ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-
-            {/* Bắp chân trước */}
-            <rect x="37" y="103" width="8" height="24" rx="4" fill={isCalves ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-            <rect x="55" y="103" width="8" height="24" rx="4" fill={isCalves ? red : bodyBase} stroke={strokeColor} strokeWidth="1" />
-          </g>
-        )}
-      </svg>
-    </div>
   );
 }
 

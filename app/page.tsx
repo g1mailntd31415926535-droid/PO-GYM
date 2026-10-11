@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AuthView from '@/components/AuthView';
 import DashboardView from '@/components/DashboardView';
 import ActiveWorkoutScreen from '@/components/ActiveWorkoutScreen';
+import FeedbackProvider from '@/components/FeedbackProvider';
+import { supabase } from '@/lib/supabaseClient';
 
 type View = 'auth' | 'dashboard' | 'workout';
 
@@ -11,32 +13,22 @@ export default function Page() {
   const [view, setView] = useState<View>('auth');
   const [routine, setRoutine] = useState({ id: 'r1', name: 'Push Day — Ngực & Vai' });
 
-  const tabs: { key: View; label: string }[] = [
-    { key: 'auth', label: 'Đăng nhập' },
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'workout', label: 'Đang tập' },
-  ];
+  // Tự động vào dashboard nếu đã có session, không dùng thanh chuyển tab thủ công.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }: any) => {
+      if (data?.session?.user) setView('dashboard');
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+      if (event === 'SIGNED_IN' && session?.user) setView('dashboard');
+      if (event === 'SIGNED_OUT') setView('auth');
+    });
+    return () => {
+      listener?.subscription?.unsubscribe?.();
+    };
+  }, []);
 
   return (
-    <>
-      <nav
-        aria-label="Chọn màn hình xem trước"
-        className="mx-auto mt-3 flex w-fit gap-1 rounded-full border border-zinc-200 bg-zinc-50 p-1"
-      >
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setView(t.key)}
-            aria-pressed={view === t.key}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
-              view === t.key ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-zinc-950'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
-
+    <FeedbackProvider>
       {view === 'auth' && <AuthView onAuthSuccess={() => setView('dashboard')} />}
       {view === 'dashboard' && (
         <DashboardView
@@ -54,6 +46,6 @@ export default function Page() {
           onBack={() => setView('dashboard')}
         />
       )}
-    </>
+    </FeedbackProvider>
   );
 }

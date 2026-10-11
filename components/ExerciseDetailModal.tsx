@@ -2,8 +2,9 @@
 'use client';
 
 import React from 'react';
-import { X, Dumbbell, Plus, Check, Zap, Target } from 'lucide-react';
-import ExerciseAnatomyView, { getMuscleLabel } from '@/components/ExerciseAnatomyView';
+import { X, Plus, Check, Zap } from 'lucide-react';
+import { getMuscleLabel } from '@/components/ExerciseAnatomyView';
+import { resolveExerciseImage } from '@/lib/lyfta';
 
 interface ExerciseDetailModalProps {
   exercise: any;
@@ -22,7 +23,7 @@ export default function ExerciseDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-zinc-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[70] bg-zinc-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -53,42 +54,19 @@ export default function ExerciseDetailModal({
           </button>
         </div>
 
-        {/* Khung minh họa giải phẫu cơ thể Lyfta Style */}
-        <div className="relative rounded-3xl bg-gradient-to-b from-white to-zinc-50 border border-zinc-200 p-4 mb-5 flex flex-col items-center shadow-sm">
-          <div className="w-full flex items-center justify-between mb-3">
-            <span className="text-[11px] font-black uppercase tracking-[0.15em] text-zinc-500">
-              Mô hình giải phẫu cơ
-            </span>
-            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
-              Lyfta Visual Engine
-            </span>
-          </div>
-
-          {/* Ảnh minh họa động tác to rõ kiểu Lyfta */}
-          {exercise.image_url && (
-            <div className="w-full rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-sm mb-3">
-              <img
-                src={exercise.image_url}
-                alt={exercise.name}
-                className="w-full h-48 object-contain bg-white"
-                loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
+        {/* 1 ảnh chính duy nhất từ Lyfta */}
+        {(() => {
+          const img = resolveExerciseImage(exercise);
+          return img ? (
+            <div className="relative rounded-3xl bg-white border border-zinc-200 mb-5 overflow-hidden shadow-sm">
+              <img src={img} alt={exercise.name} className="w-full h-72 object-cover" loading="lazy" />
             </div>
-          )}
-
-          <div className="w-full py-1">
-            <ExerciseAnatomyView
-              primaryMuscle={exercise.primary_muscle}
-              secondaryMuscles={exercise.secondary_muscles}
-              size="lg"
-              showLabels={true}
-              view="both"
-            />
-          </div>
-        </div>
+          ) : (
+            <div className="rounded-3xl bg-zinc-50 border border-zinc-200 mb-5 p-8 text-center text-xs font-bold text-zinc-500">
+              Chưa có ảnh minh họa
+            </div>
+          );
+        })()}
 
         {/* Thông tin nhóm cơ chi tiết */}
         <div className="space-y-3 mb-6">

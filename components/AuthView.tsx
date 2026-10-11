@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Weight,
 } from 'lucide-react';
+import { useFeedback } from '@/components/FeedbackProvider';
 
 export default function AuthView({ onAuthSuccess }: { onAuthSuccess: () => void }) {
   const [email, setEmail] = useState('');
@@ -24,6 +25,7 @@ export default function AuthView({ onAuthSuccess }: { onAuthSuccess: () => void 
   const [tempUserId, setTempUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { notify } = useFeedback();
 
   // Đăng nhập / Đăng ký Email
   const handleAuth = async (e: React.FormEvent) => {
@@ -33,14 +35,14 @@ export default function AuthView({ onAuthSuccess }: { onAuthSuccess: () => void 
     if (isSignUp) {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
-        alert(error.message);
+        notify(error.message, { desc: 'Đăng ký chưa thành công, kiểm tra lại giúp mình.', kind: 'error' });
       } else if (data.user) {
         setTempUserId(data.user.id);
         setShowOnboarding(true);
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) alert(error.message);
+      if (error) notify(error.message, { desc: 'Đăng nhập chưa thành công, kiểm tra lại giúp mình.', kind: 'error' });
       else onAuthSuccess();
     }
     setLoading(false);

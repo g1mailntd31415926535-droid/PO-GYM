@@ -1,0 +1,4 @@
+Nằm ngay trong folder project của bạn (gym-progressive-app), dưới dạng git commit + tag:
+- Commit fcb0cea — "Backup before full Lyfta library"
+- Tag backup-before-full-library
+Muốn xem: git log --oneline -3 / git tag. Muốn về lại bản cũ: git reset --hard backup-before-full-library (nhớ là nó sẽ xóa luôn mấy thay đổi full-library chưa commit hiện tại).

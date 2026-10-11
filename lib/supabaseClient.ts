@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { EXERCISES_FULL } from './exercises-full';
 
 // Tự động lưu trữ trên trình duyệt (localStorage) độc lập, không cần file ngoài
 const memoryStorage = new Map<string, string>();
@@ -48,7 +49,7 @@ export const isRealSupabaseConfigured =
 
 export const isSupabaseConfigured = true;
 
-const STORAGE_DB_KEY = 'pogym_mock_database_v3';
+const STORAGE_DB_KEY = 'pogym_mock_database_v4';
 const STORAGE_SESSION_KEY = 'pogym_mock_session_v2';
 
 const DEMO_USER = {
@@ -65,20 +66,8 @@ function getTodayOffset(daysAgo: number): string {
 
 function getInitialDatabase() {
   return {
-    exercises_library: [
-      { id: 'ex_1', name: 'Barbell Bench Press', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'chest', secondary_muscles: 'shoulders,triceps', muscle_group: 'Ngực', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00251101.png' },
-      { id: 'ex_2', name: 'Incline Dumbbell Press', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'chest', secondary_muscles: 'shoulders,triceps', muscle_group: 'Ngực trên', equipment: 'Dumbbell', image_url: 'https://lyfta.app/images/exercises/03141101.png' },
-      { id: 'ex_3', name: 'Overhead Press (OHP)', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'shoulders', secondary_muscles: 'triceps,traps', muscle_group: 'Vai', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00911101.png' },
-      { id: 'ex_4', name: 'Barbell Squat', default_sets: 4, default_min_rep: 6, default_max_rep: 10, default_rest_seconds: 120, primary_muscle: 'quads', secondary_muscles: 'glutes,hamstrings', muscle_group: 'Đùi trước', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00431101.png' },
-      { id: 'ex_5', name: 'Romanian Deadlift (RDL)', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'hamstrings', secondary_muscles: 'glutes,lower_back', muscle_group: 'Đùi sau', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00321101.png' },
-      { id: 'ex_6', name: 'Lat Pulldown', default_sets: 3, default_min_rep: 10, default_max_rep: 12, default_rest_seconds: 75, primary_muscle: 'lats', secondary_muscles: 'biceps,rear_delts', muscle_group: 'Lưng xô', equipment: 'Cable', image_url: 'https://lyfta.app/images/exercises/01501101.png' },
-      { id: 'ex_7', name: 'Barbell Bent-Over Row', default_sets: 3, default_min_rep: 8, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'lats', secondary_muscles: 'biceps,rear_delts', muscle_group: 'Lưng giữa', equipment: 'Barbell', image_url: 'https://lyfta.app/images/exercises/00271101.png' },
-      { id: 'ex_8', name: 'Dumbbell Lateral Raise', default_sets: 3, default_min_rep: 12, default_max_rep: 15, default_rest_seconds: 60, primary_muscle: 'shoulders', secondary_muscles: 'traps', muscle_group: 'Vai giữa', equipment: 'Dumbbell', image_url: 'https://lyfta.app/images/exercises/03341101.png' },
-      { id: 'ex_9', name: 'Triceps Cable Pushdown', default_sets: 3, default_min_rep: 10, default_max_rep: 15, default_rest_seconds: 60, primary_muscle: 'triceps', secondary_muscles: 'forearms', muscle_group: 'Tay sau', equipment: 'Cable', image_url: 'https://lyfta.app/images/exercises/02411101.png' },
-      { id: 'ex_10', name: 'Dumbbell Bicep Curl', default_sets: 3, default_min_rep: 10, default_max_rep: 12, default_rest_seconds: 60, primary_muscle: 'biceps', secondary_muscles: 'forearms', muscle_group: 'Tay trước', equipment: 'Dumbbell', image_url: 'https://lyfta.app/images/exercises/00311101.png' },
-      { id: 'ex_11', name: 'Leg Press', default_sets: 3, default_min_rep: 10, default_max_rep: 12, default_rest_seconds: 90, primary_muscle: 'quads', secondary_muscles: 'glutes,hamstrings', muscle_group: 'Đùi trước', equipment: 'Machine', image_url: 'https://lyfta.app/images/exercises/07391101.png' },
-      { id: 'ex_12', name: 'Calf Raises', default_sets: 4, default_min_rep: 12, default_max_rep: 15, default_rest_seconds: 60, primary_muscle: 'calves', secondary_muscles: '', muscle_group: 'Bắp chân', equipment: 'Body weight', image_url: 'https://lyfta.app/images/exercises/04171101.png' },
-    ],
+    // Full 70 bài verified từ Lyfta (giữ nguyên id ex_1..ex_12 cho routine/state cũ)
+    exercises_library: EXERCISES_FULL,
     workout_routines: [
       { id: 'rt_push', user_id: 'usr_demo_1', name: 'Đẩy ngực & Vai (Push A)', created_at: '2026-03-01T08:00:00Z' },
       { id: 'rt_legs', user_id: 'usr_demo_1', name: 'Chân & Bụng (Legs Focus)', created_at: '2026-03-02T08:00:00Z' },
