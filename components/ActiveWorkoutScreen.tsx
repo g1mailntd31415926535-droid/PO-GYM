@@ -1,7 +1,7 @@
 // components/ActiveWorkoutScreen.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import {
   Play,
@@ -119,19 +119,90 @@ export default function ActiveWorkoutScreen({
   };
 
   // Rest Timer Controller
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isResting && timerLeft > 0) {
-      interval = setInterval(() => setTimerLeft((prev) => prev - 1), 1000);
-    } else if (isResting && timerLeft === 0) {
-      setIsResting(false);
-      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200]);
-      }
-      moveToNextSet();
+  // Đếm theo mốc thời gian tuyệt đối thay vì prev - 1: khi iOS tạm dừng setInterval
+  // (tắt màn hình, đổi app), mốc cuối vẫn đúng nên quay lại app không bị giật lùi.
+  const endTimeRef = useRef<number | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Safari iOS cũ chỉ có tiền tố webkitAudioContext.
+  const getAudioContext = useCallback((): AudioContext | null => {
+    if (typeof window === 'undefined') return null;
+    const Ctor =
+      typeof AudioContext !== 'undefined'
+        ? AudioContext
+        : (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return null;
+    if (!audioCtxRef.current) audioCtxRef.current = new Ctor();
+    return audioCtxRef.current;
+  }, []);
+
+  const stopRestTimer = useCallback(() => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
-    return () => clearInterval(interval);
-  }, [isResting, timerLeft]);
+    endTimeRef.current = null;
+  }, []);
+
+  const playBeep = useCallback(() => {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    // Mờ dần để tiếng beep không bị "tách" giật cục.
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
+  }, [getAudioContext]);
+
+  // Đặt trước các early-return để hook phía dưới gọi được đúng thứ tự mỗi lần render.
+  // useCallback giúp deps của effect timer ổn định, không dựng lại interval mỗi lần render.
+  const moveToNextSet = useCallback(() => {
+    const ex = exercises[currentIndex];
+    if (!ex) return;
+    if (currentSet < ex.targetReps.length) {
+      setCurrentSet((prev) => prev + 1);
+    } else {
+      setActualReps([...ex.targetReps]);
+      setShowSummaryModal(true);
+    }
+  }, [exercises, currentIndex, currentSet]);
+
+  // Rời màn hình thì dọn dẹp, không để interval sống dai sau unmount.
+  useEffect(() => () => stopRestTimer(), [stopRestTimer]);
+
+  useEffect(() => {
+    if (!isResting || endTimeRef.current === null) return;
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((endTimeRef.current! - Date.now()) / 1000));
+      setTimerLeft(remaining);
+      if (remaining <= 0) {
+        stopRestTimer();
+        setIsResting(false);
+        playBeep();
+        moveToNextSet();
+      }
+    };
+
+    tick();
+    timerIntervalRef.current = setInterval(tick, 250);
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [isResting, moveToNextSet, playBeep, stopRestTimer]);
 
   if (loading) {
     return (
@@ -169,17 +240,15 @@ export default function ActiveWorkoutScreen({
   const currentExercise = exercises[currentIndex];
 
   const handleCompleteSet = () => {
+    // iOS chỉ cho phép phát âm thanh sau khi user chạm vào nút -> mở khóa ngay ở đây.
+    try {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') ctx.resume();
+    } catch {}
+
+    endTimeRef.current = Date.now() + currentExercise.restSeconds * 1000;
     setTimerLeft(currentExercise.restSeconds);
     setIsResting(true);
-  };
-
-  const moveToNextSet = () => {
-    if (currentSet < currentExercise.targetReps.length) {
-      setCurrentSet((prev) => prev + 1);
-    } else {
-      setActualReps([...currentExercise.targetReps]);
-      setShowSummaryModal(true);
-    }
   };
 
   const handleMachineBusy = () => {
@@ -288,7 +357,7 @@ export default function ActiveWorkoutScreen({
       {/* Ambient glow */}
 
       {/* HEADER */}
-      <header className="relative z-10 px-5 pt-5">
+      <header className="relative z-10 px-5 pt-[calc(1.25rem+env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
           <button
             onClick={onBack}
@@ -464,7 +533,7 @@ export default function ActiveWorkoutScreen({
       </main>
 
       {/* PRIMARY CTA - sticky bottom */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-20 px-5 pb-6 pt-10 bg-gradient-to-t from-white via-white/95 to-transparent">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-20 px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-10 bg-gradient-to-t from-white via-white/95 to-transparent">
         <button
           onClick={handleCompleteSet}
           className="group w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.98] transition-all text-white font-black text-base py-5 rounded-2xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3"
@@ -485,7 +554,7 @@ export default function ActiveWorkoutScreen({
           aria-labelledby="machine-check-title"
           className="fixed inset-0 bg-zinc-950/40 backdrop-blur-md flex items-end sm:items-center justify-center z-50"
         >
-          <div className="bg-white border border-zinc-200 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
+          <div className="bg-white border border-zinc-200 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div aria-hidden="true" className="w-10 h-1 rounded-full bg-zinc-200 mx-auto mb-6 sm:hidden" />
 
             <div className="flex items-start gap-4">
@@ -546,7 +615,7 @@ export default function ActiveWorkoutScreen({
           aria-labelledby="alternative-title"
           className="fixed inset-0 bg-zinc-950/40 backdrop-blur-md flex items-end sm:items-center justify-center z-50"
         >
-          <div className="bg-white border border-zinc-200 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 max-h-[88vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
+          <div className="bg-white border border-zinc-200 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] max-h-[88vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div aria-hidden="true" className="w-10 h-1 rounded-full bg-zinc-200 mx-auto mb-6 sm:hidden" />
 
             <div>
@@ -604,7 +673,7 @@ export default function ActiveWorkoutScreen({
           role="dialog"
           aria-modal="true"
           aria-label="Nghỉ giữa hiệp"
-          className="fixed inset-0 bg-white flex flex-col items-center justify-between p-6 pt-14 pb-10 z-40"
+          className="fixed inset-0 bg-white flex flex-col items-center justify-between p-6 pt-[calc(2.5rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))] z-40"
         >
 
           <div className="relative text-center">
@@ -655,7 +724,7 @@ export default function ActiveWorkoutScreen({
             </div>
 
             <button
-              onClick={() => { setIsResting(false); moveToNextSet(); }}
+              onClick={() => { stopRestTimer(); setIsResting(false); moveToNextSet(); }}
               className="w-full flex items-center justify-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white py-4 rounded-2xl font-black text-sm active:scale-[0.98] transition-all"
             >
               <FastForward size={18} fill="currentColor" /> BỎ QUA — TẬP TIẾP
@@ -672,7 +741,7 @@ export default function ActiveWorkoutScreen({
           aria-labelledby="summary-title"
           className="fixed inset-0 bg-zinc-950/40 backdrop-blur-md flex items-end sm:items-center justify-center z-50"
         >
-          <div className="bg-white border border-zinc-200 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-8 max-h-[92vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-300">
+          <div className="bg-white border border-zinc-200 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] max-h-[92vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div aria-hidden="true" className="w-10 h-1 rounded-full bg-zinc-200 mx-auto mb-6 sm:hidden" />
 
             <div className="text-center">

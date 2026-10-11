@@ -370,7 +370,7 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
 
   return (
     <main className="relative min-h-screen bg-white text-zinc-950 overflow-x-hidden">
-      <div className="relative max-w-md mx-auto px-5 pt-6 pb-36">
+      <div className="relative max-w-md mx-auto px-5 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-36">
         {/* HEADER */}
         <header className="flex items-start justify-between mb-7">
           <div>
@@ -491,7 +491,7 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
 
       {/* NÚT TẠO LỊCH MỚI */}
       <div className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
-        <div className="max-w-md mx-auto px-5 pb-6 pt-10 bg-gradient-to-t from-white via-white/95 to-transparent">
+        <div className="max-w-md mx-auto px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-10 bg-gradient-to-t from-white via-white/95 to-transparent">
           <button
             onClick={handleOpenCreateModal}
             className="pointer-events-auto w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all"

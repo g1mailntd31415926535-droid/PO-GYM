@@ -12,11 +12,47 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* TẮT DARK MODE: toàn bộ component đang viết nền trắng/zinc sáng.
+   Nếu iOS đang bật Dark Mode, Safari sẽ tự lật --background thành đen
+   làm loang màu nền. Ép luôn giao diện sáng cho đồng nhất. */
+/*
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+}
+*/
+
+/* Cảm giác như app nội bộ trên iOS: không chọn nhầm chữ, không vệt xanh khi bấm,
+   không kéo tắt trang (rubber-band) ở đầu/cuối trang scroll. */
+html,
+body {
+  overscroll-behavior-y: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Chặn Safari tự zoom khi focus ô nhập, nhưng KHÔNG bóp chữ số trong các ô tạ lớn. */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  font-size: max(16px, 1rem);
+}
+
+/* Ô nhập liệu vẫn cho chọn/bôi chữ để sửa số bình thường. */
+input,
+textarea {
+  user-select: auto !important;
+  -webkit-user-select: auto !important;
+}
+
+/* Bỏ delay 300ms của iOS khi chạm nút (double-tap). */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
 }
 
 body {
