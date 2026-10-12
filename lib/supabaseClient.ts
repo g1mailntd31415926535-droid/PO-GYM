@@ -51,6 +51,8 @@ export const isSupabaseConfigured = true;
 
 const STORAGE_DB_KEY = 'pogym_mock_database_v4';
 const STORAGE_SESSION_KEY = 'pogym_mock_session_v2';
+// Version hash: thay đổi khi EXERCISES_FULL thay đổi để trigger migration
+const LIBRARY_VERSION = EXERCISES_FULL.length + '_' + EXERCISES_FULL.map(e => e.id + ':' + e.default_min_rep + ':' + e.default_max_rep + ':' + e.default_rest_seconds).join('|');
 
 const DEMO_USER = {
   id: 'usr_demo_1',
@@ -66,7 +68,7 @@ function getTodayOffset(daysAgo: number): string {
 
 function getInitialDatabase() {
   return {
-    // Full 70 bài verified từ Lyfta (giữ nguyên id ex_1..ex_12 cho routine/state cũ)
+    // Full 109 bài verified từ Lyfta (giữ nguyên id ex_1..ex_12 cho routine/state cũ)
     exercises_library: EXERCISES_FULL,
     workout_routines: [
       { id: 'rt_push', user_id: 'usr_demo_1', name: 'Đẩy ngực & Vai (Push A)', created_at: '2026-03-01T08:00:00Z' },
@@ -126,9 +128,21 @@ function getMockDb(): any {
   }
   try {
     const raw = localStorage.getItem(STORAGE_DB_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const db = JSON.parse(raw);
+      // Auto-migrate: nếu thư viện bài tập trong file đã thay đổi, reset exercises_library
+      // nhưng giữ nguyên routine/state/log của user
+      const storedVersion = localStorage.getItem(STORAGE_DB_KEY + '_lib_version');
+      if (storedVersion !== LIBRARY_VERSION) {
+        db.exercises_library = EXERCISES_FULL;
+        localStorage.setItem(STORAGE_DB_KEY + '_lib_version', LIBRARY_VERSION);
+        saveMockDb(db);
+      }
+      return db;
+    }
   } catch {}
   const initial = getInitialDatabase();
+  localStorage.setItem(STORAGE_DB_KEY + '_lib_version', LIBRARY_VERSION);
   saveMockDb(initial);
   return initial;
 }

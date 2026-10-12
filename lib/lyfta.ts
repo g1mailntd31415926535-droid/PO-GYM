@@ -20,12 +20,6 @@ function normName(s: string): string {
   return v;
 }
 
-function engPart(name: string): string {
-  // Lấy phần tiếng Anh trước ngoặc để match, bỏ phần (Đẩy ngực...) khi so từ.
-  const idx = name.indexOf('(');
-  return idx >= 0 ? name.slice(0, idx) : name;
-}
-
 function tokensOf(s: string): string[] {
   // Giữ cả phần trong ngoặc: tên chính tiếng Việt thì tiếng Anh nằm trong ngoặc và ngược lại.
   // VD: "Ngồi đẩy ngực với máy (Machine Chest Press)" vẫn bắt được machine/chest/press.
@@ -312,9 +306,14 @@ const LYFTA_VERIFIED: Array<{ keys: string[]; file: string }> = [
   { keys: ['dip'], file: '08141101.png' },
   { keys: ['row'], file: '00271101.png' },
 ];
+// Những bài Lyfta KHÔNG có tranh/ảnh minh họa. Trả null để UI hiện
+// "Chưa có ảnh minh họa" thay vì gán ảnh sai nhóm cơ.
+const NO_IMAGE_KEYS = ['tibialis'];
+
 export function getLyftaDemoImage(nameOrMuscle?: string): string | null {
   if (!nameOrMuscle) return null;
   const raw = nameOrMuscle.toLowerCase();
+  if (NO_IMAGE_KEYS.some((k) => raw.includes(k))) return null;
   // 1) Tự nhận diện theo từ khóa (không phụ thuộc thứ tự từ hay ngoặc tiếng Việt).
   // Bài mới sau này tự có ảnh, không cần thêm map tay.
   const auto = autoLyftaFile(tokensOf(nameOrMuscle));
@@ -342,12 +341,15 @@ export function getLyftaDemoImage(nameOrMuscle?: string): string | null {
 
 export function resolveExerciseImage(ex?: { image_url?: string; muscle_diagram_url?: string; name?: string; primary_muscle?: string }): string | null {
   if (!ex) return null;
-  // Ưu tiên ảnh Lyfta suy từ tên bài (tự động cho cả bài mới, không phụ thuộc thứ tự từ).
-  const byName = getLyftaDemoImage(ex.name);
-  if (byName) return byName;
-  // Giữ ảnh Lyfta có sẵn trong DB, bỏ qua ảnh giải phẫu cũ.
+  // 1) Ưu tiên ảnh Lyfta đã verified gắn sẵn trong thư viện.
   if (ex.image_url && ex.image_url.includes('lyfta.app')) return ex.image_url;
   if (ex.muscle_diagram_url && ex.muscle_diagram_url.includes('lyfta.app')) return ex.muscle_diagram_url;
+  // 2) Bài Lyfta không có tranh minh hoạ -> giữ ô trống, đừng gán ảnh sai nhóm cơ.
+  const nameRaw = (ex.name || '').toLowerCase();
+  if (NO_IMAGE_KEYS.some((k) => nameRaw.includes(k))) return null;
+  // 3) Dữ liệu cũ chỉ có ảnh giải phẫu -> suy ảnh Lyfta theo tên bài / nhóm cơ.
+  const byName = getLyftaDemoImage(ex.name);
+  if (byName) return byName;
   if (ex.image_url) return ex.image_url;
   if (ex.muscle_diagram_url) return ex.muscle_diagram_url;
   return getLyftaDemoImage(ex.primary_muscle);

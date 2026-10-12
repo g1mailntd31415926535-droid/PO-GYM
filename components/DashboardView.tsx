@@ -97,7 +97,16 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
     try {
       const { data } = await supabase.from('exercises_library').select('*');
       if (data && data.length > 0) {
-        setLibraryExercises(data);
+        // Map cột cloud → tên app dùng (cloud: exercise_image_url/category, app: image_url/muscle_group)
+        const mapped = data.map((row: any) => ({
+          ...row,
+          image_url: row.image_url || row.exercise_image_url || '',
+          muscle_group: row.muscle_group || row.category || '',
+          secondary_muscles: Array.isArray(row.secondary_muscles)
+            ? row.secondary_muscles.join(',')
+            : (row.secondary_muscles || ''),
+        }));
+        setLibraryExercises(mapped);
       } else {
         setLibraryExercises(FALLBACK_LIBRARY);
       }
@@ -134,8 +143,18 @@ export default function DashboardView({ onStartWorkout }: { onStartWorkout: (rou
       const { data: exData } = await supabase.from('exercises_library').select('*').in('id', exerciseIds);
       const { data: stateData } = await supabase.from('user_exercise_state').select('*').eq('user_id', user.id).in('exercise_id', exerciseIds);
 
+      // Map cột cloud → tên app dùng
+      const mappedExData = exData?.map((row: any) => ({
+        ...row,
+        image_url: row.image_url || row.exercise_image_url || '',
+        muscle_group: row.muscle_group || row.category || '',
+        secondary_muscles: Array.isArray(row.secondary_muscles)
+          ? row.secondary_muscles.join(',')
+          : (row.secondary_muscles || ''),
+      }));
+
       const mapped: SelectedExerciseItem[] = routineExList.map((item: any) => {
-        const ex = exData?.find((e: any) => e.id === item.exercise_id);
+        const ex = mappedExData?.find((e: any) => e.id === item.exercise_id);
         const state = stateData?.find((s: any) => s.exercise_id === item.exercise_id);
 
         const setsCount = state?.target_reps?.length || ex?.default_sets || 3;
