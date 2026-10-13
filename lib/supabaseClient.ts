@@ -49,7 +49,7 @@ export const isRealSupabaseConfigured =
 
 export const isSupabaseConfigured = true;
 
-const STORAGE_DB_KEY = 'pogym_mock_database_v4';
+const STORAGE_DB_KEY = 'pogym_mock_database_v5';
 const STORAGE_SESSION_KEY = 'pogym_mock_session_v2';
 // Version hash: thay đổi khi EXERCISES_FULL thay đổi để trigger migration
 const LIBRARY_VERSION = EXERCISES_FULL.length + '_' + EXERCISES_FULL.map(e => e.id + ':' + e.default_min_rep + ':' + e.default_max_rep + ':' + e.default_rest_seconds).join('|');
@@ -89,17 +89,17 @@ function getInitialDatabase() {
       { id: 're_11', routine_id: 'rt_pull', exercise_id: 'ex_10', order_index: 3 },
     ],
     user_exercise_state: [
-      { id: 'ues_1', user_id: 'usr_demo_1', exercise_id: 'ex_1', current_weight: 60, target_reps: [10, 10, 10], plateau_count: 0, is_calibrating: false, last_reps: [10, 10, 10] },
-      { id: 'ues_2', user_id: 'usr_demo_1', exercise_id: 'ex_2', current_weight: 22, target_reps: [10, 9, 8], plateau_count: 0, is_calibrating: false, last_reps: [10, 9, 8] },
-      { id: 'ues_3', user_id: 'usr_demo_1', exercise_id: 'ex_3', current_weight: 40, target_reps: [8, 8, 8], plateau_count: 0, is_calibrating: false, last_reps: [8, 8, 8] },
-      { id: 'ues_4', user_id: 'usr_demo_1', exercise_id: 'ex_9', current_weight: 25, target_reps: [12, 12, 11], plateau_count: 0, is_calibrating: false, last_reps: [12, 12, 11] },
-      { id: 'ues_5', user_id: 'usr_demo_1', exercise_id: 'ex_4', current_weight: 80, target_reps: [8, 8, 7, 6], plateau_count: 0, is_calibrating: false, last_reps: [8, 8, 7, 6] },
-      { id: 'ues_6', user_id: 'usr_demo_1', exercise_id: 'ex_5', current_weight: 70, target_reps: [10, 10, 10], plateau_count: 0, is_calibrating: false, last_reps: [10, 10, 10] },
-      { id: 'ues_7', user_id: 'usr_demo_1', exercise_id: 'ex_11', current_weight: 120, target_reps: [12, 12, 12], plateau_count: 0, is_calibrating: false, last_reps: [12, 12, 12] },
-      { id: 'ues_8', user_id: 'usr_demo_1', exercise_id: 'ex_12', current_weight: 45, target_reps: [15, 14, 12, 12], plateau_count: 0, is_calibrating: false, last_reps: [15, 14, 12, 12] },
-      { id: 'ues_9', user_id: 'usr_demo_1', exercise_id: 'ex_6', current_weight: 55, target_reps: [10, 10, 10], plateau_count: 0, is_calibrating: false, last_reps: [10, 10, 10] },
-      { id: 'ues_10', user_id: 'usr_demo_1', exercise_id: 'ex_7', current_weight: 50, target_reps: [8, 8, 8], plateau_count: 0, is_calibrating: false, last_reps: [8, 8, 8] },
-      { id: 'ues_11', user_id: 'usr_demo_1', exercise_id: 'ex_10', current_weight: 14, target_reps: [12, 10, 10], plateau_count: 0, is_calibrating: false, last_reps: [12, 10, 10] },
+      { id: 'ues_1', user_id: 'usr_demo_1', exercise_id: 'ex_1', current_weight: 60, target_reps: [10, 10, 10], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [10, 10, 10] },
+      { id: 'ues_2', user_id: 'usr_demo_1', exercise_id: 'ex_2', current_weight: 22, target_reps: [10, 9, 8], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [10, 9, 8] },
+      { id: 'ues_3', user_id: 'usr_demo_1', exercise_id: 'ex_3', current_weight: 40, target_reps: [8, 8, 8], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [8, 8, 8] },
+      { id: 'ues_4', user_id: 'usr_demo_1', exercise_id: 'ex_9', current_weight: 25, target_reps: [12, 12, 11], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [12, 12, 11] },
+      { id: 'ues_5', user_id: 'usr_demo_1', exercise_id: 'ex_4', current_weight: 80, target_reps: [8, 8, 7, 6], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [8, 8, 7, 6] },
+      { id: 'ues_6', user_id: 'usr_demo_1', exercise_id: 'ex_5', current_weight: 70, target_reps: [10, 10, 10], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [10, 10, 10] },
+      { id: 'ues_7', user_id: 'usr_demo_1', exercise_id: 'ex_11', current_weight: 120, target_reps: [12, 12, 12], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [12, 12, 12] },
+      { id: 'ues_8', user_id: 'usr_demo_1', exercise_id: 'ex_12', current_weight: 45, target_reps: [15, 14, 12, 12], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [15, 14, 12, 12] },
+      { id: 'ues_9', user_id: 'usr_demo_1', exercise_id: 'ex_6', current_weight: 55, target_reps: [10, 10, 10], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [10, 10, 10] },
+      { id: 'ues_10', user_id: 'usr_demo_1', exercise_id: 'ex_7', current_weight: 50, target_reps: [8, 8, 8], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [8, 8, 8] },
+      { id: 'ues_11', user_id: 'usr_demo_1', exercise_id: 'ex_10', current_weight: 14, target_reps: [12, 10, 10], plateau_count: 0, sessions_at_current_weight: 1, deload_step: 0, is_calibrating: false, last_reps: [12, 10, 10] },
     ],
     workout_logs: [
       { id: 'log_1', user_id: 'usr_demo_1', workout_date: getTodayOffset(1), routine_name: 'Đẩy ngực & Vai (Push A)', level: 2, summary: 'Hoàn thành trọn vẹn 4 bài tập.' },

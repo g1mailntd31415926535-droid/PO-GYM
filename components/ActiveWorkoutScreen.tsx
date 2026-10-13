@@ -33,6 +33,9 @@ interface ExerciseItem {
   maxRep: number;
   restSeconds: number;
   completed?: boolean;
+  sessionsAtCurrentWeight?: number;
+  deloadStep?: number;
+  isCalibrating?: boolean;
 }
 
 export default function ActiveWorkoutScreen({
@@ -111,6 +114,9 @@ export default function ActiveWorkoutScreen({
         maxRep: maxRep,
         restSeconds: ex?.default_rest_seconds || 90,
         completed: false,
+        sessionsAtCurrentWeight: state?.sessions_at_current_weight || 1,
+        deloadStep: state?.deload_step || 0,
+        isCalibrating: state?.is_calibrating ?? true,
       };
     });
 
@@ -283,6 +289,8 @@ export default function ActiveWorkoutScreen({
         currentWeight: currentExercise.targetWeight,
         targetReps: currentExercise.targetReps,
         plateauCount: oldState?.plateau_count || 0,
+        sessionsAtCurrentWeight: oldState?.sessions_at_current_weight ?? currentExercise.sessionsAtCurrentWeight ?? 1,
+        deloadStep: oldState?.deload_step ?? currentExercise.deloadStep ?? 0,
         isCalibrating: oldState?.is_calibrating ?? true,
         lastReps: oldState?.last_reps || [],
       },
@@ -294,16 +302,23 @@ export default function ActiveWorkoutScreen({
     );
 
     // Lưu trạng thái tạ
-    await supabase.from('user_exercise_state').upsert({
+    const { error: upsertError } = await supabase.from('user_exercise_state').upsert({
       user_id: user.id,
       exercise_id: currentExercise.id,
       current_weight: calculation.nextWeight,
       target_reps: calculation.nextTargetReps,
       plateau_count: calculation.nextPlateauCount,
+      sessions_at_current_weight: calculation.nextSessionsAtCurrentWeight,
+      deload_step: calculation.nextDeloadStep,
       is_calibrating: calculation.isCalibrating,
       last_reps: finalReps,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id, exercise_id' });
+
+    if (upsertError) {
+      console.error('[Progression] Failed to save exercise state:', upsertError);
+      throw upsertError;
+    }
 
     notify('Hoàn thành bài tập!', { desc: calculation.actionMessage, kind: 'success' });
     setShowSummaryModal(false);

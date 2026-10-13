@@ -1,10 +1,23 @@
 // types/progression.ts
+/**
+ * THUẬT TOÁN TĂNG TIẾN TẠ KHOA HỌC
+ *
+ * - Dò tạ (Calibration): tăng khi avg > max, giảm khi avg < min, chốt khi avg ∈ [min, max]
+ * - Double Progression: tăng 1 rep mỗi buổi cho đến max, rồi tăng 2.5/5kg
+ * - Gap <= 2: set trước không được hơn set sau quá 2 rep, set sau không vượt set trước
+ * - Sessions at Current Weight: bắt buộc tăng mỗi buổi thành công
+ * - Rollback: sessionsAtCW <= 2 thất bại → lùi 1 nấc tạ
+ * - True Deload: 3 buổi kẹt liên tiếp → hạ 15% tạ, xoá credit
+ */
+
 export type ExerciseCategory = 'upper_compound' | 'lower_compound' | 'isolation';
 
-export interface ExerciseState {
+export interface ProgressionState {
   currentWeight: number;
   targetReps: number[];
   plateauCount: number;
+  sessionsAtCurrentWeight: number;
+  deloadStep: number; // 0: Bình thường, 1: Đang Deload
   isCalibrating: boolean;
   lastReps?: number[];
 }
@@ -13,122 +26,203 @@ export interface ProgressionResult {
   nextWeight: number;
   nextTargetReps: number[];
   nextPlateauCount: number;
+  nextSessionsAtCurrentWeight: number;
+  nextDeloadStep: number;
   isCalibrating: boolean;
   actionMessage: string;
 }
 
 /**
- * THUẬT TOÁN DOUBLE PROGRESSION + DELOAD
+ * Hàm phân bổ +1 rep vào mảng reps, tuân theo quy tắc:
+ * - Rep không được vượt maxRep
+ * - Set sau không được lớn hơn set trước (non-increasing)
+ * - Set sau không được cách set trước quá 2 rep (gap <= 2)
+ */
+export function distributePlusOneRep(
+  currentReps: number[],
+  maxRep: number
+): number[] {
+  const newReps = [...currentReps];
+  const n = newReps.length;
+
+  for (let i = 0; i < n; i++) {
+    // 1. Kiểm tra trần maxRep
+    if (newReps[i] >= maxRep) continue;
+
+    // 2. Không được vượt set đứng trước nó
+    if (i > 0 && newReps[i] + 1 > newReps[i - 1]) continue;
+
+    // 3. Không được cách set đứng sau nó quá 2 rep
+    if (i < n - 1 && (newReps[i] + 1) - newReps[i + 1] > 2) continue;
+
+    // Đạt đủ điều kiện: Cộng +1 rep vào set này
+    newReps[i] += 1;
+    return newReps;
+  }
+
+  return newReps;
+}
+
+/**
+ * Thuật toán tăng tiến tạ khoa học:
+ * - Dò tạ chuẩn hóa theo trung bình rep
+ * - Double progression: +1 rep hoặc +tạ
+ * - Phân bố rep tuân Gap <= 2, non-increasing
+ * - Sessions at Current Weight tăng mỗi buổi thành công
+ * - Rollback khi thất bại sớm, Deload khi kẹt lâu
  */
 export function calculateNextSession(
-  state: ExerciseState,
+  state: ProgressionState,
   actualReps: number[],
-  category: ExerciseCategory,
+  exerciseType: ExerciseCategory,
   hasMicroplates: boolean,
   minRep: number = 8,
   maxRep: number = 12
 ): ProgressionResult {
-  const { currentWeight, plateauCount, isCalibrating } = state;
-  const numSets = actualReps.length;
+  const weightStep = hasMicroplates ? 1.0 : 2.5;
+  const setsCount = state.targetReps.length || actualReps.length || 3;
+  const currentWeight = state.currentWeight;
 
-  // Bước nhảy tạ tiêu chuẩn
-  let weightIncrement = 2.5; // Thân trên mặc định 2.5kg
-  if (category === 'lower_compound') {
-    weightIncrement = 5.0; // Thân dưới 5kg
-  } else if (category === 'isolation') {
-    weightIncrement = hasMicroplates ? 1.0 : 2.0;
-  }
+  // ===============================================================
+  // GIAI ĐOẠN 1: DÒ TẠ (CALIBRATION)
+  // ===============================================================
+  if (state.isCalibrating) {
+    const totalReps = actualReps.reduce((sum, r) => sum + r, 0);
+    const avgReps = totalReps / actualReps.length;
 
-  // TRƯỜNG HỢP 1: GIAI ĐOẠN DÒ TẠ BUỔI ĐẦU (CALIBRATION)
-  // Nếu rớt xuống dưới min rep ở bất kỳ set nào -> Buổi sau hạ tạ
-  if (isCalibrating) {
-    const isBelowMin = actualReps.some(r => r < minRep);
-    if (isBelowMin) {
-      const loweredWeight = Math.max(0, currentWeight - weightIncrement);
+    // Tăng tạ khi avg > maxRep
+    if (avgReps > maxRep) {
+      const jump = avgReps >= maxRep + 3 ? weightStep * 2 : weightStep;
+      const nextWeight = currentWeight + jump;
       return {
-        nextWeight: loweredWeight,
-        nextTargetReps: Array(numSets).fill(minRep),
+        nextWeight,
+        nextTargetReps: Array(setsCount).fill(minRep),
         nextPlateauCount: 0,
-        isCalibrating: true, // Vẫn tiếp tục dò
-        actionMessage: `Tạ hơi nặng (chưa đạt ${minRep} rep). Tự động hạ ${weightIncrement}kg để đúng form!`
-      };
-    } else {
-      // Đã đẩy đạt từ minRep trở lên -> Chính thức kết thúc dò tạ, vào chu kỳ chuẩn
-      return {
-        nextWeight: currentWeight,
-        nextTargetReps: distributePlusOneRep(actualReps, maxRep),
-        nextPlateauCount: 0,
-        isCalibrating: false,
-        actionMessage: `Đã xác nhận mức tạ chuẩn! Bắt đầu chu kỳ tăng rep.`
+        nextSessionsAtCurrentWeight: 1,
+        nextDeloadStep: 0,
+        isCalibrating: true,
+        actionMessage: `Tạ còn nhẹ (TB ${avgReps.toFixed(1)} reps). Tăng lên ${nextWeight}kg để tiếp tục dò mức tạ chuẩn!`,
       };
     }
-  }
 
-  // TRƯỜNG HỢP 2: CHẠM TRẦN (HIT THE CAP) - TẤT CẢ CÁC SET ĐẠT MAX REP
-  const hitTheCap = actualReps.every(r => r >= maxRep);
-  if (hitTheCap) {
+    // Giảm tạ khi avg < minRep
+    if (avgReps < minRep) {
+      const nextWeight = Math.max(0, currentWeight - weightStep);
+      return {
+        nextWeight,
+        nextTargetReps: Array(setsCount).fill(minRep),
+        nextPlateauCount: 0,
+        nextSessionsAtCurrentWeight: 1,
+        nextDeloadStep: 0,
+        isCalibrating: true,
+        actionMessage: `Mức tạ hơi quá sức (TB ${avgReps.toFixed(1)} reps). Giảm xuống ${nextWeight}kg để tìm điểm kiểm soát!`,
+      };
+    }
+
+    // Chốt chuẩn khi avg ∈ [minRep, maxRep]
     return {
-      nextWeight: currentWeight + weightIncrement,
-      nextTargetReps: Array(numSets).fill(minRep), // Reset về đáy range (ví dụ 8 rep)
+      nextWeight: currentWeight,
+      nextTargetReps: [...actualReps],
       nextPlateauCount: 0,
+      nextSessionsAtCurrentWeight: 1,
+      nextDeloadStep: 0,
       isCalibrating: false,
-      actionMessage: `QUÁ ĐỈNH! Chạm trần ${maxRep} reps toàn bộ set. Buổi sau tăng +${weightIncrement}kg!`
+      actionMessage: `Đã chốt mức tạ chuẩn (${currentWeight}kg)! Bắt đầu lộ trình tăng tiến chính thức.`,
     };
   }
 
-  // TRƯỜNG HỢP 3: KIỂM TRA ĐÌNH TRỆ (PLATEAU & DELOAD)
-  const previousTotalReps = (state.lastReps || []).reduce((a, b) => a + b, 0);
-  const currentTotalReps = actualReps.reduce((a, b) => a + b, 0);
+  // ===============================================================
+  // GIAI ĐOẠN 2: THOÁT DELOAD
+  // ===============================================================
+  if (state.deloadStep === 1) {
+    // Vừa xong buổi xả mỏi -> thoát Deload, quay lại mức tạ baseline
+    return {
+      nextWeight: currentWeight,
+      nextTargetReps: Array(setsCount).fill(minRep),
+      nextPlateauCount: 0,
+      nextSessionsAtCurrentWeight: 1,
+      nextDeloadStep: 0,
+      isCalibrating: false,
+      actionMessage: `Đã hoàn thành buổi xả mỏi (Deload). Thể lực hồi phục, quay lại chinh phục mức tạ chính thức!`,
+    };
+  }
 
-  // Kẹt tạ: Không tăng được thêm rep nào so với buổi trước
-  const isStagnant = previousTotalReps > 0 && currentTotalReps <= previousTotalReps;
+  // ===============================================================
+  // GIAI ĐOẠN 3: CHẠM TRẦN - TĂNG TẠ
+  // ===============================================================
+  const isAllMax = actualReps.every((r) => r >= maxRep);
+  if (isAllMax) {
+    const nextWeight = currentWeight + weightStep;
+    return {
+      nextWeight,
+      nextTargetReps: Array(setsCount).fill(minRep),
+      nextPlateauCount: 0,
+      nextSessionsAtCurrentWeight: 1,
+      nextDeloadStep: 0,
+      isCalibrating: false,
+      actionMessage: `Xuất sắc! Đã làm chủ ngưỡng trần (${maxRep} reps). Tăng lên ${nextWeight}kg!`,
+    };
+  }
 
-  if (isStagnant) {
-    const newPlateauCount = plateauCount + 1;
+  // ===============================================================
+  // GIAI ĐOẠN 4: TĂNG REPS TRONG KHOẢNG
+  // ===============================================================
+  // Đạt mục tiêu hiện tại (actual >= target cho mỗi set)
+  const isTargetAchieved = actualReps.every((r, idx) => r >= (state.targetReps[idx] || minRep));
+  if (isTargetAchieved) {
+    const nextTargetReps = distributePlusOneRep(state.targetReps, maxRep);
+    return {
+      nextWeight: currentWeight,
+      nextTargetReps,
+      nextPlateauCount: 0,
+      nextSessionsAtCurrentWeight: state.sessionsAtCurrentWeight + 1,
+      nextDeloadStep: 0,
+      isCalibrating: false,
+      actionMessage: `Tập tốt! Giữ tạ ${currentWeight}kg và nâng mục tiêu reps cho buổi tiếp theo.`,
+    };
+  }
 
-    // Đã kẹt 2 buổi liên tiếp -> Buổi thứ 3 kích hoạt DELOAD tự động
-    if (newPlateauCount >= 2) {
-      const deloadWeight = Math.max(0, currentWeight - weightIncrement);
-      return {
-        nextWeight: deloadWeight,
-        nextTargetReps: Array(numSets).fill(maxRep), // Buổi deload cho đẩy mốc trên để hồi phục
-        nextPlateauCount: 0, // Reset chu kỳ
-        isCalibrating: false,
-        actionMessage: `Kẹt tạ 2 buổi liên tục. Hệ thống tự động DELOAD -${weightIncrement}kg để hồi phục cơ thần kinh!`
-      };
-    }
+  // ===============================================================
+  // GIAI ĐOẠN 5: THẤT BẠI - CHECK PLATEAU & DELOAD
+  // ===============================================================
+  const newPlateau = state.plateauCount + 1;
 
-    // Mới kẹt 1 buổi -> Giữ nguyên để cố gắng thêm 1 buổi nữa
+  // Thất bại sớm (sessionsAtCurrentWeight <= 2) -> Rollback
+  if (state.sessionsAtCurrentWeight <= 2) {
+    const nextWeight = Math.max(0, currentWeight - weightStep);
+    return {
+      nextWeight,
+      nextTargetReps: Array(setsCount).fill(maxRep - 1),
+      nextPlateauCount: 0,
+      nextSessionsAtCurrentWeight: 1,
+      nextDeloadStep: 0,
+      isCalibrating: false,
+      actionMessage: `Mức tạ mới còn hơi nặng. Lùi về ${nextWeight}kg để tích lũy thêm thể lực!`,
+    };
+  }
+
+  // Kẹt buổi 1 hoặc 2 -> Giữ nguyên để thử lại
+  if (newPlateau < 3) {
     return {
       nextWeight: currentWeight,
       nextTargetReps: [...state.targetReps],
-      nextPlateauCount: newPlateauCount,
+      nextPlateauCount: newPlateau,
+      nextSessionsAtCurrentWeight: state.sessionsAtCurrentWeight + 1,
+      nextDeloadStep: 0,
       isCalibrating: false,
-      actionMessage: `Chưa tăng rep (buổi ${newPlateauCount}/2). Buổi sau giữ nguyên tạ để vượt ngưỡng!`
+      actionMessage: `Chưa đạt mục tiêu (Kẹt lần ${newPlateau}/3). Giữ nguyên mức tạ để chinh phục lại buổi sau!`,
     };
   }
 
-  // TRƯỜNG HỢP 4: CÓ TIẾN BỘ REP (BUILDING REPS) -> TĂNG +1 REP VÀO TARGET
+  // Kẹt 3 buổi liên tiếp -> TRUE DELOAD (hạ 15%)
+  const deloadWeight = Math.round((currentWeight * 0.85) / 2.5) * 2.5;
   return {
-    nextWeight: currentWeight,
-    nextTargetReps: distributePlusOneRep(actualReps, maxRep),
+    nextWeight: Math.max(0, deloadWeight),
+    nextTargetReps: Array(setsCount).fill(minRep),
     nextPlateauCount: 0,
+    nextSessionsAtCurrentWeight: 1,
+    nextDeloadStep: 1,
     isCalibrating: false,
-    actionMessage: `Đang tiến triển tốt! Giữ tạ ${currentWeight}kg và ép tăng rep cho buổi sau.`
+    actionMessage: `Chững tạ 3 buổi liên tiếp! Kích hoạt tuần xả mỏi (Deload) tại ${deloadWeight}kg để phục hồi thần kinh.`,
   };
-}
-
-/**
- * Hàm phân bổ +1 rep vào các set chưa chạm ngưỡng max rep
- */
-function distributePlusOneRep(actualReps: number[], maxRep: number): number[] {
-  const newTargets = [...actualReps];
-  // Ưu tiên tăng rep vào set có số rep thấp nhất chưa chạm trần
-  for (let i = 0; i < newTargets.length; i++) {
-    if (newTargets[i] < maxRep) {
-      newTargets[i] += 1;
-      break; // Mỗi buổi ép tiến bộ ít nhất 1 rep mục tiêu
-    }
-  }
-  return newTargets;
 }
