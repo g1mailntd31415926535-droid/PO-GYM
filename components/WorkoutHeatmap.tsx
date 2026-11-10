@@ -9,7 +9,6 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  Flame,
   CalendarDays,
 } from 'lucide-react';
 
@@ -92,7 +91,7 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
       endDate = new Date();
       startDate = new Date();
       startDate.setDate(endDate.getDate() - 75 * 7);
-      title = 'Tất cả (All Time)';
+      title = 'Tất cả';
     }
 
     const dayOfWeek = startDate.getDay();
@@ -148,7 +147,7 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
   const handleMouseUp = () => setIsDragging(false);
 
   // Tính Streak & Số buổi tháng này
-  const { currentStreak, workoutsThisMonth } = useMemo(() => {
+  const { currentStreak } = useMemo(() => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const monthPrefix = todayStr.substring(0, 7);
@@ -183,57 +182,46 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
   const daysLabel = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   const todayKey = new Date().toISOString().split('T')[0];
   const isCompactMode = mode === '1month' || mode === '2months';
-  const cellSize = isCompactMode ? 'w-[18px] h-[18px]' : 'w-[13px] h-[13px]';
-  const labelHeight = isCompactMode ? 'h-[18px] leading-[18px]' : 'h-[13px] leading-[13px]';
+  const cellSize = isCompactMode ? 'w-5 h-5 rounded-[4px]' : 'w-[11px] h-[11px] rounded-full';
+  const labelHeight = 'h-5 leading-5';
+
+  // Chế độ 1T/2T: ô ngoài tháng đang xem để trống như lịch, chỉ ảnh hưởng hiển thị.
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  const monthKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+  const visibleMonths =
+    mode === '1month'
+      ? [monthKey(currentDate)]
+      : mode === '2months'
+        ? [monthKey(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)), monthKey(currentDate)]
+        : null;
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-hidden select-none">
-      {/* STATS */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="relative overflow-hidden rounded-2xl bg-white border border-zinc-200 px-3.5 py-3">
-          <div
-            className="pointer-events-none absolute -right-6 -top-6 w-16 h-16 rounded-full bg-orange-500/15 blur-2xl"
-            aria-hidden="true"
-          />
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">
-            <Flame className="w-3.5 h-3.5 text-orange-600" aria-hidden="true" />
-            Streak
-          </div>
-          <p className="mt-1 flex items-baseline gap-1">
-            <span className="text-2xl font-black text-zinc-950 tabular-nums">{currentStreak}</span>
-            <span className="text-xs font-semibold text-zinc-500">ngày</span>
-          </p>
-        </div>
-        <div className="relative overflow-hidden rounded-2xl bg-white border border-zinc-200 px-3.5 py-3">
-          <div
-            className="pointer-events-none absolute -right-6 -top-6 w-16 h-16 rounded-full bg-blue-600/15 blur-2xl"
-            aria-hidden="true"
-          />
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">
-            <Dumbbell className="w-3.5 h-3.5 text-blue-600" aria-hidden="true" />
-            Tháng này
-          </div>
-          <p className="mt-1 flex items-baseline gap-1">
-            <span className="text-2xl font-black text-zinc-950 tabular-nums">{workoutsThisMonth}</span>
-            <span className="text-xs font-semibold text-zinc-500">buổi</span>
-          </p>
-        </div>
+      {/* TIÊU ĐỀ + STREAK */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h2 id="heatmap-title" className="text-[13px] font-semibold uppercase tracking-[0.04em] text-muted">
+          Độ chăm chỉ
+        </h2>
+        <p className="flex items-baseline gap-1 text-[12px] font-semibold text-ink/70">
+          <span className="text-[20px] font-bold text-amber-700 tabular-nums">{currentStreak}</span>
+          ngày liên tiếp
+        </p>
       </div>
 
       {/* ĐIỀU HƯỚNG & CHẾ ĐỘ */}
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-1 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+        <div className="flex items-center gap-1">
           {mode !== 'all' && (
             <button
               type="button"
               onClick={handlePrev}
               aria-label="Khoảng thời gian trước"
-              className="w-7 h-7 shrink-0 rounded-lg bg-white border border-zinc-200 text-zinc-500 hover:text-zinc-950 hover:border-zinc-300 flex items-center justify-center active:scale-90 transition-all"
+              className="w-[26px] h-[26px] shrink-0 rounded-full bg-[#f0eee9] text-ink hover:bg-line flex items-center justify-center active:scale-90 transition-all"
             >
-              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+              <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           )}
-          <span className="truncate px-1.5 text-sm font-bold text-zinc-950 tabular-nums" aria-live="polite">
+          <span className="whitespace-nowrap px-1 text-[13px] font-bold text-ink tabular-nums" aria-live="polite">
             {headerTitle}
           </span>
           {mode !== 'all' && (
@@ -241,9 +229,9 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
               type="button"
               onClick={handleNext}
               aria-label="Khoảng thời gian sau"
-              className="w-7 h-7 shrink-0 rounded-lg bg-white border border-zinc-200 text-zinc-500 hover:text-zinc-950 hover:border-zinc-300 flex items-center justify-center active:scale-90 transition-all"
+              className="w-[26px] h-[26px] shrink-0 rounded-full bg-[#f0eee9] text-ink hover:bg-line flex items-center justify-center active:scale-90 transition-all"
             >
-              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+              <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -251,7 +239,7 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
         <div
           role="tablist"
           aria-label="Chọn khoảng thời gian"
-          className="flex shrink-0 bg-white border border-zinc-200 p-0.5 rounded-xl"
+          className="flex shrink-0 bg-[#f0eee9] p-[3px] rounded-[10px]"
         >
           {MODE_OPTIONS.map((opt) => {
             const active = mode === opt.value;
@@ -262,8 +250,8 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
                 role="tab"
                 aria-selected={active}
                 onClick={() => setMode(opt.value)}
-                className={`px-2.5 py-1 rounded-[10px] text-[10px] font-bold uppercase tracking-wide transition-all ${
-                  active ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-zinc-800'
+                className={`px-[7px] py-1 rounded-[7px] text-[10px] font-bold transition-all ${
+                  active ? 'bg-ink text-white' : 'text-muted hover:text-ink'
                 }`}
               >
                 {opt.label}
@@ -274,7 +262,7 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
       </div>
 
       {/* KHUNG CUỘN KHÓA CHẶT MIN-W-0 (CHỐNG PHÌNH TRANG WEB 100%) */}
-      <div className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-white border border-zinc-200 p-3">
+      <div className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-paper p-2">
         <div
           ref={scrollRef}
           onMouseDown={handleMouseDown}
@@ -285,34 +273,41 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
             isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
         >
-          <div className={`inline-flex min-w-max items-center ${isCompactMode ? 'w-full justify-center' : ''}`}>
-            {/* Cột Thứ dính mép trái (Sticky) */}
-            <div
-              className="sticky left-0 z-10 bg-white pr-2 flex flex-col gap-1 text-[9px] font-bold uppercase text-zinc-400"
-              aria-hidden="true"
-            >
-              {daysLabel.map((lbl, idx) => (
-                <span key={idx} className={labelHeight}>
-                  {lbl}
-                </span>
-              ))}
-            </div>
+          <div className="inline-flex min-w-max items-start">
+            {/* Cột Thứ dính mép trái (Sticky) — ảnh mẫu chỉ hiện ở chế độ 1T/2T */}
+            {isCompactMode && (
+              <div
+                className="sticky left-0 z-10 bg-paper pr-2.5 flex flex-col gap-[3px] text-[9px] font-bold uppercase text-muted"
+                aria-hidden="true"
+              >
+                {daysLabel.map((lbl, idx) => (
+                  <span key={idx} className={labelHeight}>
+                    {lbl}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Các ô vuông */}
-            <div className="flex gap-1">
-              {gridWeeks.map((week, wIdx) => (
-                <div key={wIdx} className="flex flex-col gap-1">
+            <div className="flex gap-[3px]">
+              {gridWeeks.map((week, wIdx) =>
+                visibleMonths && week.every((d) => !visibleMonths.includes(d.date.slice(0, 7))) ? null : (
+                <div key={wIdx} className="flex flex-col gap-[3px]">
                   {week.map((day) => {
-                    let cellStyle = 'bg-white border border-zinc-100';
-
-                    if (day.level === 1) {
-                      cellStyle = 'bg-blue-600/25 border border-blue-600/30 hover:bg-blue-600/40';
-                    } else if (day.level === 2) {
-                      cellStyle =
-                        'bg-blue-600 border border-blue-500 shadow-lg shadow-blue-600/20 hover:bg-blue-500';
+                    if (visibleMonths && !visibleMonths.includes(day.date.slice(0, 7))) {
+                      return <span key={day.date} className={cellSize} aria-hidden="true" />;
                     }
 
                     const isToday = day.date === todayKey;
+                    let cellStyle = isCompactMode ? 'bg-[#ebe9e4] border border-[#e2e0da]' : 'bg-[#e3e1dc]';
+
+                    if (day.level === 1) {
+                      cellStyle = 'bg-accent/40 hover:bg-accent/55';
+                    } else if (day.level === 2) {
+                      cellStyle = 'bg-accent hover:bg-accent-hover';
+                    } else if (isToday) {
+                      cellStyle = 'bg-white';
+                    }
 
                     return (
                       <button
@@ -325,8 +320,8 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
                           day.level === 2 ? ', hoàn thành' : day.level === 1 ? ', chưa đạt mục tiêu' : ', nghỉ'
                         }`}
                         title={`${day.date}`}
-                        className={`${cellSize} rounded-[4px] transition-all active:scale-125 ${cellStyle} ${
-                          isToday ? 'ring-1 ring-white/70 ring-offset-1 ring-offset-white' : ''
+                        className={`${cellSize} transition-all active:scale-125 ${cellStyle} ${
+                          isToday ? 'shadow-[inset_0_0_0_1.5px_#17171a]' : ''
                         } ${day.level > 0 ? 'cursor-pointer' : ''}`}
                       />
                     );
@@ -339,21 +334,18 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
       </div>
 
       {/* CHÚ THÍCH */}
-      <div className="flex items-center justify-end gap-1.5 mt-2.5 text-[10px] font-semibold text-zinc-500">
+      <div className="flex items-center justify-end gap-1.5 mt-3 text-[11px] font-semibold text-muted">
         <span>Ít</span>
-        <span className="w-2.5 h-2.5 rounded-[3px] bg-white border border-zinc-200" aria-hidden="true" />
-        <span className="w-2.5 h-2.5 rounded-[3px] bg-blue-600/25 border border-blue-600/30" aria-hidden="true" />
-        <span
-          className="w-2.5 h-2.5 rounded-[3px] bg-blue-600 shadow-lg shadow-blue-600/20"
-          aria-hidden="true"
-        />
+        <span className="w-2.5 h-2.5 rounded-[3px] bg-[#ebe9e4] border border-[#e2e0da]" aria-hidden="true" />
+        <span className="w-2.5 h-2.5 rounded-[3px] bg-accent/40" aria-hidden="true" />
+        <span className="w-2.5 h-2.5 rounded-[3px] bg-accent" aria-hidden="true" />
         <span>Nhiều</span>
       </div>
 
       {/* MODAL CHI TIẾT */}
       {selectedDay && (
         <div
-          className="fixed inset-0 bg-zinc-950/40 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          className="fixed inset-0 bg-ink/40 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           onClick={() => setSelectedDay(null)}
         >
           <div
@@ -361,18 +353,18 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
             aria-modal="true"
             aria-labelledby="heatmap-day-title"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm bg-white border border-zinc-200 rounded-t-[2rem] sm:rounded-[2rem] p-5 shadow-2xl"
+            className="w-full max-w-sm bg-white border border-line rounded-t-[1.75rem] sm:rounded-[1.75rem] p-5 shadow-2xl"
           >
-            <div className="w-10 h-1 rounded-full bg-zinc-100 mx-auto mb-4 sm:hidden" aria-hidden="true" />
+            <div className="w-10 h-1 rounded-full bg-line mx-auto mb-4 sm:hidden" aria-hidden="true" />
 
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-blue-600/10 border border-blue-600/20 text-blue-600 flex items-center justify-center">
+                <div className="w-11 h-11 rounded-2xl bg-accent-soft text-accent flex items-center justify-center">
                   <CalendarDays className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600">Chi tiết ngày tập</p>
-                  <h4 id="heatmap-day-title" className="text-lg font-black text-zinc-950 tabular-nums">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Chi tiết ngày tập</p>
+                  <h4 id="heatmap-day-title" className="text-lg font-bold text-ink tabular-nums">
                     {selectedDay.date}
                   </h4>
                 </div>
@@ -381,36 +373,36 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
                 type="button"
                 onClick={() => setSelectedDay(null)}
                 aria-label="Đóng"
-                className="w-9 h-9 rounded-xl bg-white border border-zinc-200 text-zinc-500 hover:text-zinc-950 flex items-center justify-center active:scale-95 transition-all"
+                className="w-9 h-9 rounded-xl bg-white border border-line text-muted hover:text-ink flex items-center justify-center active:scale-95 transition-all"
               >
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
-            <div className="bg-white border border-zinc-200 rounded-2xl p-4 space-y-3 mb-4">
+            <div className="bg-white border border-line rounded-2xl p-4 space-y-3 mb-4">
               {selectedDay.routineName && (
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 shrink-0 rounded-lg bg-white border border-zinc-200 text-zinc-700 flex items-center justify-center">
+                  <span className="w-8 h-8 shrink-0 rounded-lg bg-white border border-line text-ink flex items-center justify-center">
                     <Dumbbell className="w-4 h-4" aria-hidden="true" />
                   </span>
-                  <span className="text-sm font-bold text-zinc-950">{selectedDay.routineName}</span>
+                  <span className="text-sm font-bold text-ink">{selectedDay.routineName}</span>
                 </div>
               )}
 
               {selectedDay.level === 2 ? (
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-600/10 border border-blue-600/20 px-2.5 py-1 text-xs font-bold text-blue-600">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-1 text-xs font-bold text-accent">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                   Hoàn thành buổi tập
                 </div>
               ) : (
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 text-xs font-bold text-amber-600">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-700">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                   Chưa đạt mục tiêu
                 </div>
               )}
 
               {selectedDay.summary && (
-                <p className="text-xs leading-relaxed text-zinc-500 pt-3 border-t border-zinc-200">
+                <p className="text-xs leading-relaxed text-muted pt-3 border-t border-line">
                   {selectedDay.summary}
                 </p>
               )}
@@ -419,7 +411,7 @@ export default function WorkoutHeatmap({ activityData = [] }: WorkoutHeatmapProp
             <button
               type="button"
               onClick={() => setSelectedDay(null)}
-              className="w-full bg-white border border-zinc-200 hover:border-zinc-300 py-3.5 rounded-2xl font-black text-xs tracking-[0.15em] text-zinc-950 active:scale-[0.98] transition-all"
+              className="w-full bg-white border border-line hover:border-muted py-3.5 rounded-2xl font-bold text-xs tracking-[0.15em] text-ink active:scale-[0.98] transition-all"
             >
               ĐÓNG
             </button>

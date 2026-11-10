@@ -122,11 +122,11 @@ export default function ExerciseAnatomyView({
         {(view === 'both' || view === 'front') && (
           <div className="relative w-1/2 h-full flex flex-col items-center">
             {showLabels && (
-              <span className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.15em] mb-1.5 px-2.5 py-0.5 rounded-full bg-white border border-zinc-200 shadow-sm">
+              <span className="text-[11px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5 px-2.5 py-0.5 rounded-full bg-white border border-line shadow-sm">
                 Trước
               </span>
             )}
-            <div className="w-full flex-1 rounded-2xl bg-white border border-zinc-200/80 shadow-sm p-1.5 flex items-center justify-center">
+            <div className="w-full flex-1 rounded-2xl bg-white border border-line/80 shadow-sm p-1.5 flex items-center justify-center">
               <svg
                 viewBox="0 0 100 175"
                 className="w-full h-full transition-all"
@@ -244,11 +244,11 @@ export default function ExerciseAnatomyView({
         {(view === 'both' || view === 'back') && (
           <div className="relative w-1/2 h-full flex flex-col items-center">
             {showLabels && (
-              <span className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.15em] mb-1.5 px-2.5 py-0.5 rounded-full bg-white border border-zinc-200 shadow-sm">
+              <span className="text-[11px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5 px-2.5 py-0.5 rounded-full bg-white border border-line shadow-sm">
                 Sau
               </span>
             )}
-            <div className="w-full flex-1 rounded-2xl bg-white border border-zinc-200/80 shadow-sm p-1.5 flex items-center justify-center">
+            <div className="w-full flex-1 rounded-2xl bg-white border border-line/80 shadow-sm p-1.5 flex items-center justify-center">
               <svg
                 viewBox="0 0 100 175"
                 className="w-full h-full transition-all"

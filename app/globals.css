@@ -1,13 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #e8e6e1;
+  --foreground: #17171a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-paper: #f5f4f0;
+  --color-ink: #17171a;
+  --color-accent: #d9421a;
+  --color-accent-hover: #c23813;
+  --color-accent-soft: #fdece6;
+  --color-line: #e7e5df;
+  --color-muted: #6f6e68;
   --font-sans: var(--font-sans-vn), "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
@@ -61,4 +68,5 @@ body {
   font-family: var(--font-sans);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
 }

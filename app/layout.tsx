@@ -39,7 +39,7 @@ export const viewport: Viewport = {
   userScalable: false,
   // Cho phép nội dung tràn xuống dưới Dynamic Island / vạch Home bar.
   viewportFit: "cover",
-  themeColor: "#ffffff",
+  themeColor: "#f5f4f0",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

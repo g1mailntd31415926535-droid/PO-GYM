@@ -2,11 +2,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Dumbbell, Loader2, Sparkles, Shuffle, Target } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CircleDot, Dumbbell, Loader2, Sparkles, Shuffle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { PLANB_LIBRARY, classifyLibrary, findPlanBExercise } from '@/lib/planb/classification';
 import { rankAlternatives } from '@/lib/planb/recommendation';
-import { differencesFor, reasonFor, targetLabel, typeLabel } from '@/lib/planb/explain';
+import { targetLabel, typeLabel } from '@/lib/planb/explain';
 import { resolveExerciseImage } from '@/lib/lyfta';
 import type { PlanBExercise, RankedExercise } from '@/lib/planb/types';
 
@@ -68,23 +68,25 @@ export default function PlanBSwapSheet({
       role="dialog"
       aria-modal="true"
       aria-labelledby="planb-title"
-      className="fixed inset-0 bg-zinc-950/40 backdrop-blur-md flex items-end sm:items-center justify-center z-50"
+      className="fixed inset-0 bg-ink/25 flex items-end sm:items-center justify-center z-50"
     >
-      <div className="bg-white border border-zinc-200 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] max-h-[92vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
-        <div aria-hidden="true" className="w-10 h-1 rounded-full bg-zinc-200 mx-auto mb-6 sm:hidden" />
+      <div className="bg-white w-full max-w-md rounded-t-[1.75rem] sm:rounded-[1.75rem] px-[18px] pt-2.5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] max-h-[94vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div aria-hidden="true" className="w-9 h-[3px] rounded-full bg-line mx-auto mb-5" />
 
         <div>
-          <p className="text-[11px] font-bold tracking-[0.2em] text-blue-600 uppercase">Plan B · Đổi bài</p>
-          <h3 id="planb-title" className="text-xl font-black leading-tight mt-1 line-clamp-2">
+          <p className="text-[10px] font-bold tracking-[0.08em] text-accent uppercase">Plan B · Đổi bài</p>
+          <h3 id="planb-title" className="text-[26px] font-bold leading-[1.2] mt-1 line-clamp-2">
             {baseName} đang bận
           </h3>
           {base && (
-            <div className="mt-3 rounded-2xl bg-zinc-50 border border-zinc-200 px-4 py-3">
-              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                <Target size={12} /> Bạn cần tập
+            <div className="mt-4 rounded-2xl bg-paper p-3">
+              <p className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.06em] text-muted">
+                <CircleDot size={10} /> Bạn cần tập
               </p>
-              <p className="mt-1 text-sm font-bold">{targetLabel(base)}</p>
-              <p className="mt-1 text-[11px] text-zinc-500 leading-relaxed">
+              <p className="mt-0.5 text-[13px] font-bold">
+                {targetLabel(base)} · {groupOf(base)}
+              </p>
+              <p className="mt-0.5 text-[10px] text-muted leading-relaxed">
                 Chỉ hiện bài cùng nhóm cơ và cùng vùng cơ. Xếp theo độ giống động tác (80%) và loại bài (20%).
               </p>
             </div>
@@ -93,8 +95,8 @@ export default function PlanBSwapSheet({
 
         <div className="space-y-2 overflow-y-auto flex-1 mt-4 -mx-1 px-1">
           {!library ? (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-zinc-500">
-              <Loader2 size={16} className="animate-spin text-blue-600" />
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted">
+              <Loader2 size={16} className="animate-spin text-accent" />
               Đang tìm bài thay thế...
             </div>
           ) : !base ? (
@@ -109,7 +111,7 @@ export default function PlanBSwapSheet({
             />
           ) : (
             <>
-              <p className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase">
+              <p className="text-[10px] font-bold tracking-[0.06em] text-muted uppercase">
                 {ranked.length} bài phù hợp
               </p>
               {visible.map((item) => (
@@ -126,28 +128,42 @@ export default function PlanBSwapSheet({
           {hiddenCount > 0 && (
             <button
               onClick={() => setShowAll(true)}
-              className="w-full rounded-2xl border border-zinc-200 py-3 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors"
+              className="w-full h-[38px] rounded-xl bg-white border border-line text-[12px] font-bold text-ink hover:bg-paper transition-colors"
             >
               Xem thêm {hiddenCount} bài
             </button>
           )}
-
-          <p className="pt-2 text-[11px] leading-relaxed text-zinc-500">
-            Thứ hạng là quy tắc kinh nghiệm để chọn động tác gần nhất, không khẳng định hiệu quả tập tương đương.
-            Tạ của bài gốc không tự quy đổi. Bài thay thế dùng lộ trình tăng tạ riêng của nó.
-          </p>
         </div>
 
         <button
           onClick={onBack}
-          className="w-full bg-transparent hover:bg-zinc-100 border border-zinc-200 py-3.5 rounded-2xl font-semibold text-zinc-500 hover:text-zinc-800 text-sm mt-4 flex items-center justify-center gap-2 transition-colors"
+          className="w-full h-[43px] bg-white hover:bg-paper border border-line rounded-2xl font-semibold text-ink text-[13px] mt-5 flex items-center justify-center gap-1.5 transition-colors"
         >
-          <ArrowLeft size={15} />
+          <ArrowLeft size={14} />
           Quay lại
         </button>
       </div>
     </div>
   );
+}
+
+// "Barbell Bench Press (Đẩy ngực...)" -> "Barbell Bench Press" cho câu giải thích ngắn gọn.
+function shortName(name: string): string {
+  return name.replace(/\s*\(.*$/, '');
+}
+
+function groupOf(ex: PlanBExercise): string {
+  return targetLabel(ex).split(' ')[0];
+}
+
+function reasonLine(base: PlanBExercise, ranked: RankedExercise): string {
+  const name = shortName(base.name);
+  if (ranked.isDifferentStyle) {
+    return `Cùng vùng ${groupOf(base).toLowerCase()} nhưng khác kiểu động tác so với ${name}.`;
+  }
+  return ranked.exercise.movementPattern === base.movementPattern
+    ? `Cùng vùng cơ và cùng kiểu động tác với ${name}.`
+    : `Cùng vùng cơ, cùng nhóm động tác nhưng khác kiểu so với ${name}.`;
 }
 
 function OptionCard({
@@ -160,63 +176,55 @@ function OptionCard({
   onChoose: () => void;
 }) {
   const { exercise, recommended, isDifferentStyle } = ranked;
-  const differences = differencesFor(base, exercise);
   const img = resolveExerciseImage(exercise);
+  const type = typeLabel(exercise.exerciseType);
 
   return (
     <button
       onClick={onChoose}
-      className={`w-full text-left bg-white p-3 rounded-2xl active:scale-[0.98] transition-all border ${
-        recommended ? 'border-2 border-blue-600' : 'border-zinc-200 hover:border-blue-600/40'
+      className={`w-full text-left bg-[#f7f6f3] p-3 rounded-2xl active:scale-[0.98] transition-all border ${
+        recommended ? 'border-accent' : 'border-line hover:border-accent/40'
       }`}
     >
       <div className="flex gap-3">
-        <div className="w-16 h-16 rounded-xl bg-zinc-100 overflow-hidden shrink-0 flex items-center justify-center">
+        <div className="w-[50px] h-[50px] rounded-[10px] bg-[#ebe9e4] overflow-hidden shrink-0 flex items-center justify-center">
           {img ? (
             <img src={img} alt={exercise.name} loading="lazy" className="w-full h-full object-cover" />
           ) : (
-            <Dumbbell size={20} className="text-zinc-400" />
+            <Dumbbell size={18} className="text-muted" />
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {recommended && (
-              <span className="flex items-center gap-1 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">
-                <Sparkles size={10} /> Gợi ý
-              </span>
-            )}
-            {isDifferentStyle && (
-              <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-700">
-                <Shuffle size={10} /> Khác kiểu động tác
-              </span>
-            )}
-          </div>
-          <h4 className="mt-1 text-sm font-bold text-zinc-950 leading-snug line-clamp-2">{exercise.name}</h4>
-          <p className="mt-0.5 text-[11px] font-semibold text-zinc-500">
-            {exercise.equipment || 'Không rõ dụng cụ'} · {typeLabel(exercise.exerciseType)}
+          {(recommended || isDifferentStyle) && (
+            <div className="flex flex-wrap items-center gap-1 mb-1">
+              {recommended && (
+                <span className="flex items-center gap-0.5 rounded-full bg-accent px-1.5 py-[2px] text-[9px] font-bold uppercase text-white">
+                  <Sparkles size={8} /> Gợi ý
+                </span>
+              )}
+              {isDifferentStyle && (
+                <span className="flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-[2px] text-[9px] font-bold uppercase text-amber-700">
+                  <Shuffle size={8} /> Khác kiểu động tác
+                </span>
+              )}
+            </div>
+          )}
+          <h4 className="text-[14px] font-bold text-ink leading-snug line-clamp-2">{exercise.name}</h4>
+          <p className="text-[11px] font-semibold text-muted">
+            {exercise.equipment || 'Không rõ dụng cụ'} · {type.charAt(0).toUpperCase() + type.slice(1)}
           </p>
         </div>
-        <ArrowRight size={16} className="text-zinc-400 shrink-0 self-center" />
+        <ArrowRight size={14} className="text-muted shrink-0 self-center" />
       </div>
 
-      <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{reasonFor(base, exercise)}</p>
+      <p className="mt-2 text-[11px] leading-relaxed text-muted">{reasonLine(base, ranked)}</p>
 
-      {differences.length > 0 && (
-        <ul className="mt-1 space-y-0.5">
-          {differences.slice(0, 3).map((line) => (
-            <li key={line} className="text-[10px] leading-relaxed text-zinc-400">
-              · {line}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold text-zinc-600 tabular-nums">
-        <span className="rounded-full bg-zinc-100 px-2 py-0.5">{exercise.default_sets} set</span>
-        <span className="rounded-full bg-zinc-100 px-2 py-0.5">
+      <div className="mt-1.5 flex flex-wrap gap-1 text-[9px] font-bold text-ink/70 tabular-nums">
+        <span className="rounded-full bg-[#ebe9e4] px-2 py-[3px]">{exercise.default_sets} set</span>
+        <span className="rounded-full bg-[#ebe9e4] px-2 py-[3px]">
           {exercise.default_min_rep}–{exercise.default_max_rep} rep
         </span>
-        <span className="rounded-full bg-zinc-100 px-2 py-0.5">nghỉ {exercise.default_rest_seconds}s</span>
+        <span className="rounded-full bg-[#ebe9e4] px-2 py-[3px]">nghỉ {exercise.default_rest_seconds}s</span>
       </div>
     </button>
   );
@@ -224,10 +232,10 @@ function OptionCard({
 
 function EmptyState({ title, desc }: { title: string; desc: string }) {
   return (
-    <div className="text-center py-8 px-4 rounded-2xl border border-dashed border-zinc-300">
-      <Dumbbell size={22} className="mx-auto text-zinc-400 mb-2" />
-      <p className="text-sm font-black">{title}</p>
-      <p className="mt-1 text-xs text-zinc-500 leading-relaxed">{desc}</p>
+    <div className="text-center py-8 px-4 rounded-2xl border border-dashed border-line">
+      <Dumbbell size={22} className="mx-auto text-muted mb-2" />
+      <p className="text-sm font-bold">{title}</p>
+      <p className="mt-1 text-xs text-muted leading-relaxed">{desc}</p>
     </div>
   );
 }

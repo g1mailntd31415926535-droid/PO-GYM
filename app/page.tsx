@@ -19,7 +19,9 @@ export default function Page() {
       if (data?.session?.user) setView('dashboard');
     });
     const { data: listener } = supabase.auth.onAuthStateChange((event: string, session: any) => {
-      if (event === 'SIGNED_IN' && session?.user) setView('dashboard');
+      // Supabase bắn lại SIGNED_IN mỗi khi tab hiện lại (khóa màn hình, đổi app):
+      // chỉ chuyển khi đang ở màn đăng nhập, không đá người đang tập về dashboard.
+      if (event === 'SIGNED_IN' && session?.user) setView((v) => (v === 'auth' ? 'dashboard' : v));
       if (event === 'SIGNED_OUT') setView('auth');
     });
     return () => {

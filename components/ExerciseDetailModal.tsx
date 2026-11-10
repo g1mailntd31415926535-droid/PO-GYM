@@ -23,31 +23,31 @@ export default function ExerciseDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] bg-zinc-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[70] bg-ink/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="w-full max-w-md bg-white border border-zinc-200 rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-md bg-white border border-line rounded-t-[1.75rem] sm:rounded-[1.75rem] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Thanh kéo trên điện thoại */}
-        <div className="w-10 h-1 rounded-full bg-zinc-200 mx-auto mb-4 sm:hidden" />
+        <div className="w-10 h-1 rounded-full bg-line mx-auto mb-4 sm:hidden" />
 
         {/* Header Modal */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-accent-soft text-accent text-[11px] font-bold uppercase tracking-wider mb-1.5">
               <Zap className="w-3 h-3" /> {exercise.equipment || 'Gym Standard'}
             </div>
-            <h3 className="text-xl font-black text-zinc-950 tracking-tight leading-snug">
+            <h3 className="text-[24px] font-bold text-ink tracking-tight leading-tight">
               {exercise.name}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 flex items-center justify-center transition-all"
+            className="w-11 h-11 shrink-0 rounded-[14px] bg-white border border-line text-muted hover:text-ink flex items-center justify-center transition-all"
             aria-label="Đóng"
           >
             <X className="w-4 h-4" />
@@ -58,11 +58,11 @@ export default function ExerciseDetailModal({
         {(() => {
           const img = resolveExerciseImage(exercise);
           return img ? (
-            <div className="relative rounded-3xl bg-white border border-zinc-200 mb-5 overflow-hidden shadow-sm">
+            <div className="relative rounded-[1.375rem] bg-white border border-line mb-5 overflow-hidden">
               <img src={img} alt={exercise.name} className="w-full h-72 object-cover" loading="lazy" />
             </div>
           ) : (
-            <div className="rounded-3xl bg-zinc-50 border border-zinc-200 mb-5 p-8 text-center text-xs font-bold text-zinc-500">
+            <div className="rounded-[1.375rem] bg-paper border border-line mb-5 p-8 text-center text-xs font-bold text-muted">
               Chưa có ảnh minh họa
             </div>
           );
@@ -70,23 +70,23 @@ export default function ExerciseDetailModal({
 
         {/* Thông tin nhóm cơ chi tiết */}
         <div className="space-y-3 mb-6">
-          <div className="rounded-2xl border border-zinc-200 p-3.5 bg-white">
+          <div className="rounded-2xl border border-line p-3.5 bg-white">
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-              <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Cơ đích chính (Primary)</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+              <span className="text-xs font-bold text-muted uppercase tracking-wider">Cơ đích chính (Primary)</span>
             </div>
-            <p className="text-sm font-black text-zinc-950 pl-4.5">
+            <p className="text-sm font-bold text-ink pl-4.5">
               {exercise.muscle_group || getMuscleLabel(exercise.primary_muscle)}
             </p>
           </div>
 
           {exercise.secondary_muscles && (
-            <div className="rounded-2xl border border-zinc-200 p-3.5 bg-white">
+            <div className="rounded-2xl border border-line p-3.5 bg-white">
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Cơ bổ trợ (Secondary)</span>
+                <span className="text-xs font-bold text-muted uppercase tracking-wider">Cơ bổ trợ (Secondary)</span>
               </div>
-              <p className="text-sm font-semibold text-zinc-700 pl-4.5">
+              <p className="text-sm font-semibold text-ink pl-4.5">
                 {exercise.secondary_muscles
                   .split(',')
                   .map((m: string) => getMuscleLabel(m.trim()))
@@ -96,13 +96,13 @@ export default function ExerciseDetailModal({
           )}
 
           <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-2.5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase">Sets chuẩn</span>
-              <p className="text-base font-black text-zinc-900">{exercise.default_sets || 3} sets</p>
+            <div className="rounded-2xl bg-paper p-3">
+              <span className="text-[10px] font-bold text-muted uppercase">Sets chuẩn</span>
+              <p className="text-base font-bold text-ink">{exercise.default_sets || 3} sets</p>
             </div>
-            <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-2.5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase">Khoảng Reps</span>
-              <p className="text-base font-black text-zinc-900">
+            <div className="rounded-2xl bg-paper p-3">
+              <span className="text-[10px] font-bold text-muted uppercase">Khoảng Reps</span>
+              <p className="text-base font-bold text-ink">
                 {exercise.default_min_rep || 8} – {exercise.default_max_rep || 12} reps
               </p>
             </div>
@@ -117,15 +117,15 @@ export default function ExerciseDetailModal({
             onAdd(exercise);
             onClose();
           }}
-          className={`w-full py-4 rounded-2xl font-black text-sm tracking-wide flex items-center justify-center gap-2 shadow-lg transition-all ${
+          className={`w-full py-4 rounded-2xl font-bold text-sm tracking-wide flex items-center justify-center gap-2 transition-all ${
             isAdded
-              ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20 active:scale-[0.98]'
+              ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+              : 'bg-accent hover:bg-accent-hover text-white shadow-md shadow-accent/25 active:scale-[0.98]'
           }`}
         >
           {isAdded ? (
             <>
-              <Check className="w-5 h-5 text-emerald-600" /> ĐÃ CÓ TRONG LỊCH TẬP
+              <Check className="w-5 h-5" /> ĐÃ CÓ TRONG LỊCH TẬP
             </>
           ) : (
             <>

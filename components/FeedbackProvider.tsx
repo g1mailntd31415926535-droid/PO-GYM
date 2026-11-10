@@ -38,18 +38,18 @@ export function useFeedback(): FeedbackContextValue {
 const KIND_STYLE: Record<ToastKind, { icon: React.ReactNode; bar: string; iconBox: string }> = {
   success: {
     icon: <CheckCircle2 className="w-5 h-5" aria-hidden="true" />,
-    bar: 'bg-blue-600',
-    iconBox: 'bg-blue-600/10 border-blue-600/20 text-blue-600',
+    bar: 'bg-accent',
+    iconBox: 'bg-accent border-accent text-white',
   },
   error: {
     icon: <AlertTriangle className="w-5 h-5" aria-hidden="true" />,
     bar: 'bg-rose-500',
-    iconBox: 'bg-rose-500/10 border-rose-500/20 text-rose-600',
+    iconBox: 'bg-rose-600 border-rose-600 text-white',
   },
   info: {
     icon: <Info className="w-5 h-5" aria-hidden="true" />,
     bar: 'bg-zinc-400',
-    iconBox: 'bg-zinc-100 border-zinc-200 text-zinc-600',
+    iconBox: 'bg-white/10 border-white/15 text-white',
   },
 };
 
@@ -104,20 +104,20 @@ export default function FeedbackProvider({ children }: { children: React.ReactNo
           return (
             <div
               key={t.id}
-              className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-zinc-200 bg-white/95 backdrop-blur px-4 py-3 shadow-2xl shadow-zinc-950/10 overflow-hidden"
+              className="pointer-events-auto flex items-start gap-3 rounded-[16px] bg-ink text-white px-4 py-3 shadow-2xl shadow-ink/20 overflow-hidden"
             >
               <span aria-hidden="true" className={`w-1 self-stretch rounded-full ${s.bar}`} />
               <span className={`w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center ${s.iconBox}`}>
                 {s.icon}
               </span>
               <div className="flex-1 min-w-0 py-0.5">
-                <p className="font-bold text-sm text-zinc-950 leading-snug">{t.title}</p>
-                {t.desc && <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed whitespace-pre-line">{t.desc}</p>}
+                <p className="font-bold text-sm text-white leading-snug">{t.title}</p>
+                {t.desc && <p className="text-xs text-white/75 mt-0.5 leading-relaxed whitespace-pre-line">{t.desc}</p>}
               </div>
               <button
                 onClick={() => dismissToast(t.id)}
                 aria-label="Đóng thông báo"
-                className="w-7 h-7 shrink-0 rounded-lg text-zinc-400 hover:text-zinc-950 hover:bg-zinc-100 flex items-center justify-center transition-colors"
+                className="w-9 h-9 shrink-0 rounded-lg text-white/70 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
               >
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
@@ -129,14 +129,14 @@ export default function FeedbackProvider({ children }: { children: React.ReactNo
       {/* Hộp xác nhận đẹp thay cho confirm() mặc định */}
       {confirm && (
         <div
-          className="fixed inset-0 z-[110] bg-zinc-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-[110] bg-ink/40 backdrop-blur-sm flex items-end sm:items-center justify-center"
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="fb-confirm-title"
           onClick={() => closeConfirm(false)}
         >
           <div
-            className="w-full max-w-md bg-white border border-zinc-200 rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-6 shadow-2xl"
+            className="w-full max-w-md bg-white border border-line rounded-t-[24px] sm:rounded-[24px] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-4">
@@ -144,32 +144,32 @@ export default function FeedbackProvider({ children }: { children: React.ReactNo
                 className={`w-12 h-12 shrink-0 rounded-2xl border flex items-center justify-center ${
                   confirm.danger
                     ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
-                    : 'bg-blue-600/10 border-blue-600/20 text-blue-600'
+                    : 'bg-accent-soft border-accent/20 text-accent'
                 }`}
               >
                 {confirm.danger ? <Trash2 className="w-5 h-5" aria-hidden="true" /> : <Info className="w-5 h-5" aria-hidden="true" />}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 id="fb-confirm-title" className="text-lg font-black tracking-tight leading-snug">
+                <h3 id="fb-confirm-title" className="text-lg font-bold tracking-tight leading-snug">
                   {confirm.title}
                 </h3>
-                {confirm.desc && <p className="text-sm text-zinc-500 mt-1 leading-relaxed">{confirm.desc}</p>}
+                {confirm.desc && <p className="text-sm text-muted mt-1 leading-relaxed">{confirm.desc}</p>}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-6">
               <button
                 onClick={() => closeConfirm(false)}
-                className="py-3.5 rounded-2xl font-bold text-sm bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-950 hover:border-zinc-300 active:scale-[0.98] transition-all"
+                className="min-h-12 rounded-2xl font-bold text-sm bg-[#f0eee9] border border-line text-ink hover:bg-line active:scale-[0.98] transition-all"
               >
                 {confirm.cancelLabel || 'Để lại'}
               </button>
               <button
                 onClick={() => closeConfirm(true)}
                 autoFocus
-                className={`py-3.5 rounded-2xl font-black text-sm text-white active:scale-[0.98] transition-all ${
+                className={`min-h-12 rounded-2xl font-bold text-sm text-white active:scale-[0.98] transition-all ${
                   confirm.danger
-                    ? 'bg-rose-500 hover:bg-rose-400 shadow-lg shadow-rose-500/20'
-                    : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20'
+                    ? 'bg-rose-600 hover:bg-rose-700'
+                    : 'bg-accent hover:bg-accent-hover shadow-md shadow-accent/25'
                 }`}
               >
                 {confirm.confirmLabel || 'Đồng ý'}
@@ -182,30 +182,29 @@ export default function FeedbackProvider({ children }: { children: React.ReactNo
       {/* Màn ăn mừng xong buổi tập thay cho alert() */}
       {party && (
         <div
-          className="fixed inset-0 z-[110] bg-zinc-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-[110] bg-accent text-white flex items-center justify-center px-6"
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="fb-party-title"
           onClick={() => setParty(null)}
         >
           <div
-            className="w-full max-w-md bg-white border border-zinc-200 rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-6 shadow-2xl text-center overflow-hidden"
+            className="w-full max-w-md text-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <div aria-hidden="true" className="h-1.5 -mx-6 -mt-6 mb-6 bg-gradient-to-r from-blue-600 via-violet-500 to-blue-600" />
-            <div className="w-16 h-16 rounded-3xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-600/25">
+            <div className="w-20 h-20 rounded-[1.375rem] bg-white/15 text-white flex items-center justify-center mx-auto">
               <Trophy className="w-8 h-8" aria-hidden="true" />
             </div>
-            <h3 id="fb-party-title" className="text-xl font-black tracking-tight mt-4">
+            <h3 id="fb-party-title" className="text-[34px] font-bold tracking-tight leading-[1.1] mt-6">
               {party.title}
             </h3>
             {party.desc && (
-              <p className="text-sm text-zinc-500 mt-2 leading-relaxed whitespace-pre-line">{party.desc}</p>
+              <p className="text-base text-white/90 mt-3 leading-relaxed whitespace-pre-line">{party.desc}</p>
             )}
             <button
               onClick={() => setParty(null)}
               autoFocus
-              className="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black tracking-wide active:scale-[0.98] transition-all shadow-lg shadow-blue-600/20"
+              className="w-full mt-10 bg-white hover:bg-accent-soft text-accent py-4 rounded-2xl font-bold tracking-wide active:scale-[0.98] transition-all"
             >
               TUYỆT VỜI
             </button>
