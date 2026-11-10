@@ -20,9 +20,13 @@ import {
   Loader2,
   ChevronRight,
   RotateCcw,
+  Shuffle,
+  ListOrdered,
 } from 'lucide-react';
 import { calculateNextSession } from '@/types/progression';
 import { useFeedback } from '@/components/FeedbackProvider';
+import PlanBSwapSheet from '@/components/PlanBSwapSheet';
+import type { PlanBExercise } from '@/lib/planb/types';
 
 interface ExerciseItem {
   id: string;
@@ -36,6 +40,45 @@ interface ExerciseItem {
   sessionsAtCurrentWeight?: number;
   deloadStep?: number;
   isCalibrating?: boolean;
+  /** Tên bài gốc trong lịch khi bài này được đổi vào bằng Plan B. */
+  replacedFrom?: string;
+}
+
+interface LibraryRow {
+  name?: string;
+  default_sets?: number;
+  default_min_rep?: number;
+  default_max_rep?: number;
+  default_rest_seconds?: number;
+}
+
+interface ExerciseStateRow {
+  current_weight?: number;
+  target_reps?: number[];
+  sessions_at_current_weight?: number;
+  deload_step?: number;
+  is_calibrating?: boolean;
+}
+
+// Gộp dòng thư viện + trạng thái tăng tạ của user thành 1 bài trong buổi tập.
+function toExerciseItem(id: string, ex?: LibraryRow, state?: ExerciseStateRow): ExerciseItem {
+  const setsCount = ex?.default_sets || 3;
+  const minRep = ex?.default_min_rep ?? 8;
+  const maxRep = ex?.default_max_rep ?? 12;
+
+  return {
+    id,
+    name: ex?.name || 'Bài tập',
+    targetWeight: state?.current_weight || 20,
+    targetReps: state?.target_reps || Array(setsCount).fill(minRep),
+    minRep: minRep,
+    maxRep: maxRep,
+    restSeconds: ex?.default_rest_seconds || 90,
+    completed: false,
+    sessionsAtCurrentWeight: state?.sessions_at_current_weight || 1,
+    deloadStep: state?.deload_step || 0,
+    isCalibrating: state?.is_calibrating ?? true,
+  };
 }
 
 export default function ActiveWorkoutScreen({
@@ -57,6 +100,7 @@ export default function ActiveWorkoutScreen({
   // Modals
   const [showMachineCheck, setShowMachineCheck] = useState(true);
   const [showAlternativeModal, setShowAlternativeModal] = useState(false);
+  const [showPlanBSheet, setShowPlanBSheet] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [actualReps, setActualReps] = useState<number[]>([]);
   const [isEditingReps, setIsEditingReps] = useState(false);
@@ -97,28 +141,13 @@ export default function ActiveWorkoutScreen({
       .eq('user_id', user.id)
       .in('exercise_id', exIds);
 
-    const mapped: ExerciseItem[] = routineExList.map((item: any) => {
-      const ex = libData?.find((l: any) => l.id === item.exercise_id);
-      const state = states?.find((s: any) => s.exercise_id === item.exercise_id);
-
-      const setsCount = ex?.default_sets || 3;
-      const minRep = ex?.default_min_rep ?? 8;
-      const maxRep = ex?.default_max_rep ?? 12;
-
-      return {
-        id: item.exercise_id,
-        name: ex?.name || 'Bài tập',
-        targetWeight: state?.current_weight || 20,
-        targetReps: state?.target_reps || Array(setsCount).fill(minRep),
-        minRep: minRep,
-        maxRep: maxRep,
-        restSeconds: ex?.default_rest_seconds || 90,
-        completed: false,
-        sessionsAtCurrentWeight: state?.sessions_at_current_weight || 1,
-        deloadStep: state?.deload_step || 0,
-        isCalibrating: state?.is_calibrating ?? true,
-      };
-    });
+    const mapped: ExerciseItem[] = routineExList.map((item: any) =>
+      toExerciseItem(
+        item.exercise_id,
+        libData?.find((l: any) => l.id === item.exercise_id),
+        states?.find((s: any) => s.exercise_id === item.exercise_id),
+      ),
+    );
 
     setExercises(mapped);
     setLoading(false);
@@ -260,6 +289,35 @@ export default function ActiveWorkoutScreen({
   const handleMachineBusy = () => {
     setShowMachineCheck(false);
     setShowAlternativeModal(true);
+  };
+
+  const handleOpenPlanB = () => {
+    setShowMachineCheck(false);
+    setShowPlanBSheet(true);
+  };
+
+  // PLAN B: đổi bài hiện tại sang bài thay thế chỉ trong buổi hôm nay (lịch gốc giữ nguyên).
+  // Bài thay thế dùng trạng thái tăng tạ riêng của nó, không quy đổi tạ từ bài gốc.
+  const handleSwapExercise = async (picked: PlanBExercise) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: states } = await supabase
+      .from('user_exercise_state')
+      .select('*')
+      .eq('user_id', user.id)
+      .in('exercise_id', [picked.id]);
+
+    const original = exercises[currentIndex];
+    const swapped: ExerciseItem = {
+      ...toExerciseItem(picked.id, picked, states?.[0]),
+      replacedFrom: original.replacedFrom ?? original.name,
+    };
+
+    setExercises(exercises.map((ex, idx) => (idx === currentIndex ? swapped : ex)));
+    setCurrentSet(1);
+    setShowPlanBSheet(false);
+    notify('Đã đổi bài', { desc: `${picked.name} thay cho ${swapped.replacedFrom}`, kind: 'success' });
   };
 
   const handleSelectAlternativeExercise = (selectedId: string) => {
@@ -419,6 +477,12 @@ export default function ActiveWorkoutScreen({
           <h1 className="text-3xl font-black tracking-tight leading-tight mt-2 text-balance line-clamp-2">
             {currentExercise.name}
           </h1>
+          {currentExercise.replacedFrom && (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-700">
+              <Shuffle size={12} />
+              <span className="line-clamp-1">Thay cho: {currentExercise.replacedFrom}</span>
+            </p>
+          )}
         </div>
 
         {/* Stats row */}
@@ -610,12 +674,23 @@ export default function ActiveWorkoutScreen({
                 <Check size={18} strokeWidth={3} />
                 MÁY TRỐNG — TẬP LUÔN
               </button>
+              <p className="flex items-center gap-1.5 pt-2 text-[11px] font-bold tracking-[0.15em] text-zinc-500 uppercase">
+                <AlertTriangle size={13} className="text-amber-600" />
+                Máy đang bận?
+              </p>
+              <button
+                onClick={handleOpenPlanB}
+                className="w-full bg-zinc-100 hover:bg-zinc-100 border border-zinc-300/60 py-4 rounded-2xl font-bold text-zinc-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm"
+              >
+                <Shuffle size={18} className="text-blue-600" />
+                ĐỔI SANG BÀI TƯƠNG TỰ (PLAN B)
+              </button>
               <button
                 onClick={handleMachineBusy}
                 className="w-full bg-zinc-100 hover:bg-zinc-100 border border-zinc-300/60 py-4 rounded-2xl font-bold text-zinc-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm"
               >
-                <AlertTriangle size={18} className="text-amber-600" />
-                ĐANG BẬN — CHỌN BÀI KHÁC
+                <ListOrdered size={18} className="text-amber-600" />
+                TẬP BÀI KHÁC TRONG LỊCH TRƯỚC
               </button>
             </div>
           </div>
@@ -634,7 +709,7 @@ export default function ActiveWorkoutScreen({
             <div aria-hidden="true" className="w-10 h-1 rounded-full bg-zinc-200 mx-auto mb-6 sm:hidden" />
 
             <div>
-              <h3 id="alternative-title" className="text-xl font-black">Chọn bài thay thế</h3>
+              <h3 id="alternative-title" className="text-xl font-black">Chọn bài tập trước</h3>
               <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-400/10 border border-amber-400/20 px-3 py-2.5">
                 <AlertTriangle size={14} className="text-amber-600 shrink-0" />
                 <p className="text-xs text-amber-200/90 leading-relaxed">
@@ -680,6 +755,17 @@ export default function ActiveWorkoutScreen({
             </button>
           </div>
         </div>
+      )}
+
+      {/* 3. PLAN B — GỢI Ý BÀI THAY THẾ */}
+      {showPlanBSheet && (
+        <PlanBSwapSheet
+          baseId={currentExercise.id}
+          baseName={currentExercise.name}
+          excludeIds={exercises.map((ex) => ex.id)}
+          onChoose={handleSwapExercise}
+          onBack={() => { setShowPlanBSheet(false); setShowMachineCheck(true); }}
+        />
       )}
 
       {/* 5. NGHỈ GIỮA HIỆP */}
