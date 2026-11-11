@@ -12,8 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#ffffff',
-    theme_color: '#ffffff',
+    background_color: '#f5f4f0',
+    theme_color: '#f5f4f0',
     icons: [
       {
         src: '/icon-192.png',
@@ -26,6 +26,13 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
+      },
+      {
+        // Android cắt icon theo hình tròn/bo góc: bản này chừa lề an toàn.
+        src: '/icon-maskable-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
       },
     ],
   };

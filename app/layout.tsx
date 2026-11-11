@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: "Gym Progression",
   },
   icons: {
-    apple: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
